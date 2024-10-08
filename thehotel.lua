@@ -4,18 +4,25 @@ if getgenv().SeerGG_Doors_TheHotel then
 end
 getgenv().SeerGG_Doors_TheHotel = true
 
--- Load Orion UI Library
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
-local Window = OrionLib:MakeWindow({
-    Name = "Seer.GG/Doors ESP",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "Seer.GG/Doors/TheHotel"
+-- Load Linoria UI Library
+local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
+local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
+local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
+local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
+
+local Window = Library:CreateWindow({
+    Title = 'Seer.GG/Doors ESP',
+    Center = true,
+    AutoShow = true,
+    TabPadding = 8,
+    MenuFadeTime = 0.2
 })
 
--- Tabs and Sections
-local MainTab = Window:MakeTab({Name = "Visuals", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-local ConfigTab = Window:MakeTab({Name = "Config", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local Tabs = {
+    Main = Window:AddTab('Visuals'),
+    Config = Window:AddTab('Config'),
+    ['UI Settings'] = Window:AddTab('UI Settings')
+}
 
 -- Store ESP Data and Colors
 local GeneralTable = {
@@ -135,7 +142,7 @@ end
 local function GetEntityObjects()
     local entityObjects = {}
     for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj.Name ~= "The Figure" then
+        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj.Name ~= "The Figure" and not game.Players:GetPlayerFromCharacter(obj) then
             table.insert(entityObjects, obj)
         end
     end
@@ -192,42 +199,49 @@ local function GetPlayerObjects()
     return #playerObjects > 0 and playerObjects or nil
 end
 
+-- Function to initialize ESP on existing objects
+local function InitializeESP()
+    ApplyESPForType("DoorESP", GetDoorObjects, GeneralTable.ESPColors.DoorESP)
+    ApplyESPForType("TargetESP", GetTargetObjects, GeneralTable.ESPColors.TargetESP)
+    ApplyESPForType("ChestESP", GetChestObjects, GeneralTable.ESPColors.ChestESP)
+    ApplyESPForType("EntityESP", GetEntityObjects, GeneralTable.ESPColors.EntityESP)
+    ApplyESPForType("GuidingLightESP", GetGuidingLightObjects, GeneralTable.ESPColors.GuidingLightESP)
+    ApplyESPForType("GoldESP", GetGoldObjects, GeneralTable.ESPColors.GoldESP)
+    ApplyESPForType("ItemESP", GetItemObjects, GeneralTable.ESPColors.ItemESP)
+    ApplyESPForType("HandheldItemESP", GetHandheldItemObjects, GeneralTable.ESPColors.HandheldItemESP)
+    ApplyESPForType("PlayerESP", GetPlayerObjects, GeneralTable.ESPColors.PlayerESP)
+end
+
 -- Monitor room generation and updates
 local latestRoom = game:GetService("ReplicatedStorage").GameData.LatestRoom
 latestRoom:GetPropertyChangedSignal("Value"):Connect(function()
     local newRoom = workspace.CurrentRooms:FindFirstChild(tostring(latestRoom.Value))
     if newRoom then
-        ApplyESPForType("DoorESP", GetDoorObjects, GeneralTable.ESPColors.DoorESP)
-        ApplyESPForType("TargetESP", GetTargetObjects, GeneralTable.ESPColors.TargetESP)
-        ApplyESPForType("ChestESP", GetChestObjects, GeneralTable.ESPColors.ChestESP)
-        ApplyESPForType("EntityESP", GetEntityObjects, GeneralTable.ESPColors.EntityESP)
-        ApplyESPForType("GuidingLightESP", GetGuidingLightObjects, GeneralTable.ESPColors.GuidingLightESP)
-        ApplyESPForType("GoldESP", GetGoldObjects, GeneralTable.ESPColors.GoldESP)
-        ApplyESPForType("ItemESP", GetItemObjects, GeneralTable.ESPColors.ItemESP)
-        ApplyESPForType("HandheldItemESP", GetHandheldItemObjects, GeneralTable.ESPColors.HandheldItemESP)
-        ApplyESPForType("PlayerESP", GetPlayerObjects, GeneralTable.ESPColors.PlayerESP)
+        InitializeESP()
         CleanupOldRooms()
     end
 end)
 
--- UI Toggles and Color Pickers for each ESP
+-- Add Toggles and Color Pickers using Linoria
 for espType, _ in pairs(GeneralTable.ESP) do
-    MainTab:AddToggle({
-        Name = espType .. " Toggle",
+    local toggleText = espType:gsub("ESP", " ESP")
+    Tabs.Main:AddLeftGroupbox('ESP Toggles'):AddToggle(espType .. 'Toggle', {
+        Text = toggleText,
         Default = false,
+        Tooltip = 'Enable or disable ' .. toggleText,
         Callback = function(enabled)
             GeneralTable.ToggleStates[espType] = enabled
             if enabled then
-                ApplyESPForType(espType, _G["Get" .. espType .. "Objects"], GeneralTable.ESPColors[espType])
+                InitializeESP()
             else
                 for _, esp in pairs(GeneralTable.ESP[espType]) do esp:Destroy() end
                 GeneralTable.ESP[espType] = {}
             end
         end
     })
-
-    ConfigTab:AddColorpicker({
-        Name = espType .. " Color",
+    
+    Tabs.Config:AddLeftGroupbox('ESP Colors'):AddColorPicker(espType .. 'Color', {
+        Text = toggleText .. ' Color',
         Default = GeneralTable.ESPColors[espType],
         Callback = function(color)
             GeneralTable.ESPColors[espType] = color
@@ -236,5 +250,17 @@ for espType, _ in pairs(GeneralTable.ESP) do
     })
 end
 
--- Initialize Orion Library
-OrionLib:Init()
+-- Initialize ESP on first load
+InitializeESP()
+
+-- Setup Linoria SaveManager and ThemeManager
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+SaveManager:BuildConfigSection(Tabs['UI Settings'])
+ThemeManager:ApplyToTab(Tabs['UI Settings'])
+SaveManager:SetFolder('Seer.GG/Doors/TheHotel')
+
+-- Load autoload config
+SaveManager:LoadAutoloadConfig()
+
+Library:Notify('Seer.GG ESP loaded successfully.')
