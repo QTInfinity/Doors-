@@ -226,7 +226,7 @@ end)
 
 -- Add Toggles and Color Pickers using Linoria
 local VisualsGroup = Tabs.Main:AddLeftGroupbox('ESP Toggles')
-local ColorGroup = Tabs.Config:AddLeftGroupbox('ESP Colors')
+local ColorGroup = Tabs.Config:AddRightGroupbox('ESP Colors')
 
 for espType, _ in pairs(GeneralTable.ESP) do
     local toggleText = espType:gsub("ESP", " ESP")
@@ -245,8 +245,7 @@ for espType, _ in pairs(GeneralTable.ESP) do
         end
     })
     
-    ColorGroup:AddColorPicker(espType .. 'Color', {
-        Text = toggleText .. ' Color',
+    ColorGroup:AddLabel(toggleText .. ' Color'):AddColorPicker(espType .. 'Color', {
         Default = GeneralTable.ESPColors[espType],
         Callback = function(color)
             GeneralTable.ESPColors[espType] = color
