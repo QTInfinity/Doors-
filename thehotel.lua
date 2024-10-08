@@ -14,6 +14,8 @@ local Window = Library:CreateWindow({
     Title = 'Seer.GG/Doors ESP',
     Center = true,
     AutoShow = true,
+    Size = UDim2.new(0, 450, 0, 500), -- Slightly smaller window
+    CanDrag = true,
     TabPadding = 8,
     MenuFadeTime = 0.2
 })
@@ -223,9 +225,12 @@ latestRoom:GetPropertyChangedSignal("Value"):Connect(function()
 end)
 
 -- Add Toggles and Color Pickers using Linoria
+local VisualsGroup = Tabs.Main:AddLeftGroupbox('ESP Toggles')
+local ColorGroup = Tabs.Config:AddLeftGroupbox('ESP Colors')
+
 for espType, _ in pairs(GeneralTable.ESP) do
     local toggleText = espType:gsub("ESP", " ESP")
-    Tabs.Main:AddLeftGroupbox('ESP Toggles'):AddToggle(espType .. 'Toggle', {
+    VisualsGroup:AddToggle(espType .. 'Toggle', {
         Text = toggleText,
         Default = false,
         Tooltip = 'Enable or disable ' .. toggleText,
@@ -240,7 +245,7 @@ for espType, _ in pairs(GeneralTable.ESP) do
         end
     })
     
-    Tabs.Config:AddLeftGroupbox('ESP Colors'):AddColorPicker(espType .. 'Color', {
+    ColorGroup:AddColorPicker(espType .. 'Color', {
         Text = toggleText .. ' Color',
         Default = GeneralTable.ESPColors[espType],
         Callback = function(color)
@@ -260,7 +265,18 @@ SaveManager:BuildConfigSection(Tabs['UI Settings'])
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
 SaveManager:SetFolder('Seer.GG/Doors/TheHotel')
 
--- Load autoload config
+-- UI Settings for changing themes and adding a keybind for menu toggle
+local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
+MenuGroup:AddButton('Unload', function() Library:Unload() end)
+MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
+    Default = 'End',
+    NoUI = true,
+    Text = 'Menu keybind'
+})
+Library.ToggleKeybind = Options.MenuKeybind
+
+-- Apply and load default config
 SaveManager:LoadAutoloadConfig()
 
+-- Notify when loaded
 Library:Notify('Seer.GG ESP loaded successfully.')
