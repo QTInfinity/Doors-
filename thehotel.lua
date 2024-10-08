@@ -210,45 +210,34 @@ for espType, _ in pairs(GeneralTable.ESP) do
     VisualsGroup:AddToggle(espType .. 'Toggle', {
         Text = toggleText,
         Default = false,
-        Tooltip = 'Enable or disable ' .. toggleText,
-        Callback = function(enabled)
-            GeneralTable.ToggleStates[espType] = enabled
-            local getFunc = ({
-                DoorESP = GetDoorObjects,
-                TargetESP = GetTargetObjects,
-                ChestESP = GetChestObjects,
-                EntityESP = GetEntityObjects,
-                HandheldItemESP = GetHandheldItemObjects
-            })[espType]
-            if enabled and getFunc then
-                ApplyESPForType(espType, getFunc, GeneralTable.ESPColors[espType])
+        Callback = function(Value)
+            GeneralTable.ToggleStates[espType] = Value
+            if Value then
+                InitializeESP()
             else
-                for _, esp in pairs(GeneralTable.ESP[espType]) do esp:Destroy() end
+                for _, highlight in pairs(GeneralTable.ESP[espType]) do
+                    if highlight then highlight:Destroy() end
+                end
                 GeneralTable.ESP[espType] = {}
             end
         end
     })
-    
-    ColorGroup:AddLabel(toggleText .. ' Color'):AddColorPicker(espType .. 'Color', {
+    ColorGroup:AddColorPicker(espType .. 'ColorPicker', {
         Default = GeneralTable.ESPColors[espType],
-        Callback = function(color)
-            GeneralTable.ESPColors[espType] = color
-            UpdateESPColors(espType, color)
+        Callback = function(Value)
+            GeneralTable.ESPColors[espType] = Value
+            UpdateESPColors(espType, Value)
         end
     })
 end
 
--- Initialize ESP on first load
-InitializeESP()
-
--- Setup Linoria SaveManager and ThemeManager
+-- UI Settings
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:BuildConfigSection(Tabs['UI Settings'])
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
 SaveManager:SetFolder('Seer.GG/Doors/TheHotel')
 
--- UI Settings for changing themes and adding a keybind for menu toggle
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 MenuGroup:AddButton('Unload', function() Library:Unload() end)
 MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
@@ -257,9 +246,6 @@ MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
     Text = 'Menu keybind'
 })
 Library.ToggleKeybind = Options.MenuKeybind
-
--- Apply and load default config
 SaveManager:LoadAutoloadConfig()
 
--- Notify when loaded
 Library:Notify('Seer.GG ESP loaded successfully.')
