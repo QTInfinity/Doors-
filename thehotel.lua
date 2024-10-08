@@ -231,13 +231,17 @@ for espType, _ in pairs(GeneralTable.ESP) do
     })
 end
 
--- UI Settings
+-- Initialize ESP on first load
+InitializeESP()
+
+-- Setup Linoria SaveManager and ThemeManager
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:BuildConfigSection(Tabs['UI Settings'])
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
 SaveManager:SetFolder('Seer.GG/Doors/TheHotel')
 
+-- UI Settings for changing themes and adding a keybind for menu toggle
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 MenuGroup:AddButton('Unload', function() Library:Unload() end)
 MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
@@ -246,6 +250,9 @@ MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
     Text = 'Menu keybind'
 })
 Library.ToggleKeybind = Options.MenuKeybind
+
+-- Apply and load default config
 SaveManager:LoadAutoloadConfig()
 
+-- Notify when loaded
 Library:Notify('Seer.GG ESP loaded successfully.')
