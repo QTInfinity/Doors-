@@ -66,6 +66,7 @@ local GeneralTable = {
 
 -- Function to create and update Highlight ESP
 local function CreateHighlightESP(object, fillColor)
+    if not object or not fillColor then return nil end
     local highlight = object:FindFirstChildOfClass("Highlight") or Instance.new("Highlight")
     highlight.Adornee = object
     highlight.FillColor = fillColor
@@ -78,6 +79,7 @@ end
 
 -- Update all ESPs of a specific type with a new color
 local function UpdateESPColors(espType, color)
+    if not GeneralTable.ESP[espType] then return end
     for _, highlight in pairs(GeneralTable.ESP[espType]) do
         if highlight and highlight.Adornee then
             highlight.FillColor = color
@@ -101,13 +103,15 @@ end
 
 -- Function for applying ESP to specific objects
 local function ApplyESPForType(espType, getObjectsFunc, color)
-    if not GeneralTable.ToggleStates[espType] then return end
+    if not GeneralTable.ToggleStates[espType] or not getObjectsFunc then return end
     local objects = getObjectsFunc()
     if objects then
         for _, obj in pairs(objects) do
-            if not obj:FindFirstChildOfClass("Highlight") then
+            if obj:IsA("Instance") and not obj:FindFirstChildOfClass("Highlight") then
                 local highlight = CreateHighlightESP(obj, color)
-                table.insert(GeneralTable.ESP[espType], highlight)
+                if highlight then
+                    table.insert(GeneralTable.ESP[espType], highlight)
+                end
             end
         end
     end
@@ -180,7 +184,9 @@ local function InitializeESP()
                 EntityESP = GetEntityObjects,
                 HandheldItemESP = GetHandheldItemObjects
             })[espType]
-            ApplyESPForType(espType, getFunc, GeneralTable.ESPColors[espType])
+            if getFunc then
+                ApplyESPForType(espType, getFunc, GeneralTable.ESPColors[espType])
+            end
         end
     end
 end
@@ -207,14 +213,14 @@ for espType, _ in pairs(GeneralTable.ESP) do
         Tooltip = 'Enable or disable ' .. toggleText,
         Callback = function(enabled)
             GeneralTable.ToggleStates[espType] = enabled
-            if enabled then
-                local getFunc = ({
-                    DoorESP = GetDoorObjects,
-                    TargetESP = GetTargetObjects,
-                    ChestESP = GetChestObjects,
-                    EntityESP = GetEntityObjects,
-                    HandheldItemESP = GetHandheldItemObjects
-                })[espType]
+            local getFunc = ({
+                DoorESP = GetDoorObjects,
+                TargetESP = GetTargetObjects,
+                ChestESP = GetChestObjects,
+                EntityESP = GetEntityObjects,
+                HandheldItemESP = GetHandheldItemObjects
+            })[espType]
+            if enabled and getFunc then
                 ApplyESPForType(espType, getFunc, GeneralTable.ESPColors[espType])
             else
                 for _, esp in pairs(GeneralTable.ESP[espType]) do esp:Destroy() end
