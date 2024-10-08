@@ -14,7 +14,7 @@ local Window = Library:CreateWindow({
     Title = 'Seer.GG/Doors ESP',
     Center = true,
     AutoShow = true,
-    Size = UDim2.new(0, 500, 0, 600), -- Adjusted for better theme display
+    Size = UDim2.new(0, 500, 0, 600),
     CanDrag = true,
     TabPadding = 8,
     MenuFadeTime = 0.2
@@ -102,10 +102,13 @@ end
 -- Function for applying ESP to specific objects
 local function ApplyESPForType(espType, getObjectsFunc, color)
     if not GeneralTable.ToggleStates[espType] then return end
-    for _, obj in pairs(getObjectsFunc()) do
-        if not obj:FindFirstChildOfClass("Highlight") then
-            local highlight = CreateHighlightESP(obj, color)
-            table.insert(GeneralTable.ESP[espType], highlight)
+    local objects = getObjectsFunc()
+    if objects then
+        for _, obj in pairs(objects) do
+            if not obj:FindFirstChildOfClass("Highlight") then
+                local highlight = CreateHighlightESP(obj, color)
+                table.insert(GeneralTable.ESP[espType], highlight)
+            end
         end
     end
 end
