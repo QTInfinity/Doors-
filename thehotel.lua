@@ -14,7 +14,7 @@ local Window = Library:CreateWindow({
     Title = 'Seer.GG/Doors ESP',
     Center = true,
     AutoShow = true,
-    Size = UDim2.new(0, 450, 0, 500), -- Slightly smaller window
+    Size = UDim2.new(0, 500, 0, 600), -- Adjusted for better theme display
     CanDrag = true,
     TabPadding = 8,
     MenuFadeTime = 0.2
@@ -99,12 +99,11 @@ local function CleanupOldRooms()
     end
 end
 
--- General function for applying ESP
+-- Function for applying ESP to specific objects
 local function ApplyESPForType(espType, getObjectsFunc, color)
     if not GeneralTable.ToggleStates[espType] then return end
-    local objects = getObjectsFunc()
-    if objects then
-        for _, obj in pairs(objects) do
+    for _, obj in pairs(getObjectsFunc()) do
+        if not obj:FindFirstChildOfClass("Highlight") then
             local highlight = CreateHighlightESP(obj, color)
             table.insert(GeneralTable.ESP[espType], highlight)
         end
@@ -118,7 +117,7 @@ local function GetDoorObjects()
         local door = room:FindFirstChild("Door") and room.Door:FindFirstChild("Door")
         if door then table.insert(doorObjects, door) end
     end
-    return #doorObjects > 0 and doorObjects or nil
+    return doorObjects
 end
 
 local function GetTargetObjects()
@@ -128,90 +127,59 @@ local function GetTargetObjects()
             table.insert(targets, obj)
         end
     end
-    return #targets > 0 and targets or nil
+    return targets
 end
 
 local function GetChestObjects()
     local chestObjects = {}
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj.Name == "Chest" then
-            table.insert(chestObjects, obj)
+    for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
+        for _, obj in pairs(room:GetDescendants()) do
+            if obj.Name == "Main" and obj.Parent and obj.Parent.Name == "ChestBox" then
+                table.insert(chestObjects, obj)
+            end
         end
     end
-    return #chestObjects > 0 and chestObjects or nil
+    return chestObjects
 end
 
 local function GetEntityObjects()
     local entityObjects = {}
     for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj.Name ~= "The Figure" and not game.Players:GetPlayerFromCharacter(obj) then
+        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and not game.Players:GetPlayerFromCharacter(obj) then
             table.insert(entityObjects, obj)
         end
     end
-    return #entityObjects > 0 and entityObjects or nil
-end
-
-local function GetGuidingLightObjects()
-    local guidingLights = {}
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj.Name == "GuidingLight" then
-            table.insert(guidingLights, obj)
-        end
-    end
-    return #guidingLights > 0 and guidingLights or nil
-end
-
-local function GetGoldObjects()
-    local goldObjects = {}
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj.Name == "Gold" then
-            table.insert(goldObjects, obj)
-        end
-    end
-    return #goldObjects > 0 and goldObjects or nil
-end
-
-local function GetItemObjects()
-    local itemObjects = {}
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Tool") then
-            table.insert(itemObjects, obj)
-        end
-    end
-    return #itemObjects > 0 and itemObjects or nil
+    return entityObjects
 end
 
 local function GetHandheldItemObjects()
     local handheldObjects = {}
     for _, player in pairs(game.Players:GetPlayers()) do
-        if player.Character and player.Character:FindFirstChildOfClass("Tool") then
-            table.insert(handheldObjects, player.Character:FindFirstChildOfClass("Tool"))
+        if player.Character then
+            for _, tool in pairs(player.Character:GetChildren()) do
+                if tool:IsA("Tool") then
+                    table.insert(handheldObjects, tool)
+                end
+            end
         end
     end
-    return #handheldObjects > 0 and handheldObjects or nil
-end
-
-local function GetPlayerObjects()
-    local playerObjects = {}
-    for _, player in pairs(game.Players:GetPlayers()) do
-        if player ~= game.Players.LocalPlayer and player.Character then
-            table.insert(playerObjects, player.Character)
-        end
-    end
-    return #playerObjects > 0 and playerObjects or nil
+    return handheldObjects
 end
 
 -- Function to initialize ESP on existing objects
 local function InitializeESP()
-    ApplyESPForType("DoorESP", GetDoorObjects, GeneralTable.ESPColors.DoorESP)
-    ApplyESPForType("TargetESP", GetTargetObjects, GeneralTable.ESPColors.TargetESP)
-    ApplyESPForType("ChestESP", GetChestObjects, GeneralTable.ESPColors.ChestESP)
-    ApplyESPForType("EntityESP", GetEntityObjects, GeneralTable.ESPColors.EntityESP)
-    ApplyESPForType("GuidingLightESP", GetGuidingLightObjects, GeneralTable.ESPColors.GuidingLightESP)
-    ApplyESPForType("GoldESP", GetGoldObjects, GeneralTable.ESPColors.GoldESP)
-    ApplyESPForType("ItemESP", GetItemObjects, GeneralTable.ESPColors.ItemESP)
-    ApplyESPForType("HandheldItemESP", GetHandheldItemObjects, GeneralTable.ESPColors.HandheldItemESP)
-    ApplyESPForType("PlayerESP", GetPlayerObjects, GeneralTable.ESPColors.PlayerESP)
+    for espType, isEnabled in pairs(GeneralTable.ToggleStates) do
+        if isEnabled then
+            local getFunc = ({
+                DoorESP = GetDoorObjects,
+                TargetESP = GetTargetObjects,
+                ChestESP = GetChestObjects,
+                EntityESP = GetEntityObjects,
+                HandheldItemESP = GetHandheldItemObjects
+            })[espType]
+            ApplyESPForType(espType, getFunc, GeneralTable.ESPColors[espType])
+        end
+    end
 end
 
 -- Monitor room generation and updates
@@ -237,7 +205,14 @@ for espType, _ in pairs(GeneralTable.ESP) do
         Callback = function(enabled)
             GeneralTable.ToggleStates[espType] = enabled
             if enabled then
-                InitializeESP()
+                local getFunc = ({
+                    DoorESP = GetDoorObjects,
+                    TargetESP = GetTargetObjects,
+                    ChestESP = GetChestObjects,
+                    EntityESP = GetEntityObjects,
+                    HandheldItemESP = GetHandheldItemObjects
+                })[espType]
+                ApplyESPForType(espType, getFunc, GeneralTable.ESPColors[espType])
             else
                 for _, esp in pairs(GeneralTable.ESP[espType]) do esp:Destroy() end
                 GeneralTable.ESP[espType] = {}
