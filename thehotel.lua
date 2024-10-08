@@ -130,8 +130,8 @@ end
 local function GetTargetObjects()
     local targets = {}
     for _, obj in pairs(workspace:GetDescendants()) do
-        if obj.Name == "KeyObtain" or obj.Name == "LiveBreakerPolePickup" or obj.Name == "LiveHintBook" then
-            table.insert(targets, obj)
+        if obj.Name == "KeyObtain" or obj.Name == "LiveBreakerPolePickup" or obj.Name == "LiveHintBook" or obj.Name == "LeverForGate" then
+            table.insert(targets, obj:FindFirstChild("Main") or obj)
         end
     end
     return targets
