@@ -191,7 +191,7 @@ local function InitializeESP()
     end
 end
 
--- Monitor room generation and updates
+-- Event listener for entering a new room
 local latestRoom = game:GetService("ReplicatedStorage").GameData.LatestRoom
 latestRoom:GetPropertyChangedSignal("Value"):Connect(function()
     local newRoom = workspace.CurrentRooms:FindFirstChild(tostring(latestRoom.Value))
@@ -201,12 +201,14 @@ latestRoom:GetPropertyChangedSignal("Value"):Connect(function()
     end
 end)
 
--- Add Toggles and Color Pickers using Linoria
+-- UI setup and integration
 local VisualsGroup = Tabs.Main:AddLeftGroupbox('ESP Toggles')
 local ColorGroup = Tabs.Config:AddRightGroupbox('ESP Colors')
 
 for espType, _ in pairs(GeneralTable.ESP) do
     local toggleText = espType:gsub("ESP", " ESP")
+    
+    -- Create the toggle for each ESP type
     VisualsGroup:AddToggle(espType .. 'Toggle', {
         Text = toggleText,
         Default = false,
@@ -215,6 +217,7 @@ for espType, _ in pairs(GeneralTable.ESP) do
             if Value then
                 InitializeESP()
             else
+                -- Destroy existing highlights for this ESP type
                 for _, highlight in pairs(GeneralTable.ESP[espType]) do
                     if highlight then highlight:Destroy() end
                 end
@@ -222,7 +225,9 @@ for espType, _ in pairs(GeneralTable.ESP) do
             end
         end
     })
-    ColorGroup:AddColorPicker(espType .. 'ColorPicker', {
+
+    -- Add a label with a color picker for each ESP type
+    ColorGroup:AddLabel(toggleText .. ' Color'):AddColorPicker(espType .. 'ColorPicker', {
         Default = GeneralTable.ESPColors[espType],
         Callback = function(Value)
             GeneralTable.ESPColors[espType] = Value
