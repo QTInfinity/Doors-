@@ -208,7 +208,7 @@ local ColorGroup = Tabs.Config:AddRightGroupbox('ESP Colors')
 for espType, _ in pairs(GeneralTable.ESP) do
     local toggleText = espType:gsub("ESP", " ESP")
     
-    -- Create the toggle for each ESP type
+    -- Create the toggle for each ESP type and add a color picker
     VisualsGroup:AddToggle(espType .. 'Toggle', {
         Text = toggleText,
         Default = false,
@@ -217,18 +217,15 @@ for espType, _ in pairs(GeneralTable.ESP) do
             if Value then
                 InitializeESP()
             else
-                -- Destroy existing highlights for this ESP type
                 for _, highlight in pairs(GeneralTable.ESP[espType]) do
                     if highlight then highlight:Destroy() end
                 end
                 GeneralTable.ESP[espType] = {}
             end
         end
-    })
-
-    -- Add a label with a color picker for each ESP type
-    ColorGroup:AddLabel(toggleText .. ' Color'):AddColorPicker(espType .. 'ColorPicker', {
+    }):AddColorPicker(espType .. 'ColorPicker', {
         Default = GeneralTable.ESPColors[espType],
+        Title = toggleText .. ' Color',
         Callback = function(Value)
             GeneralTable.ESPColors[espType] = Value
             UpdateESPColors(espType, Value)
