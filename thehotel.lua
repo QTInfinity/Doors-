@@ -49,23 +49,17 @@ local GeneralTable = {
         PlayerESP = Color3.fromRGB(255, 255, 255)
     },
     RoomHistory = {},
-    ToggleStates = {
-        DoorESP = false,
-        TargetESP = false,
-        ChestESP = false,
-        EntityESP = false,
-        GuidingLightESP = false,
-        GoldESP = false,
-        ItemESP = false,
-        HandheldItemESP = false,
-        PlayerESP = false
-    }
+    ToggleStates = {}
 }
+
+-- Initialize Toggle States to False
+for espType, _ in pairs(GeneralTable.ESP) do
+    GeneralTable.ToggleStates[espType] = false
+end
 
 -- Helper function for creating highlights with default properties
 local function CreateHighlightESP(object, fillColor)
     if not object or not fillColor then
-        print("CreateHighlightESP: Invalid object or color")
         return nil
     end
     local highlight = object:FindFirstChildOfClass("Highlight") or Instance.new("Highlight")
@@ -80,8 +74,7 @@ end
 
 -- Update all ESPs of a specific type with a new color
 local function UpdateESPColors(espType, color)
-    if not GeneralTable.ESP[espType] then return end
-    for _, highlight in pairs(GeneralTable.ESP[espType]) do
+    for _, highlight in pairs(GeneralTable.ESP[espType] or {}) do
         if highlight and highlight.Adornee then
             highlight.FillColor = color
         end
@@ -104,7 +97,6 @@ end
 
 -- Function for applying ESP to specific objects
 local function ApplyESPForType(espType, getObjectsFunc, color)
-    if not GeneralTable.ToggleStates[espType] then return end
     local objects = getObjectsFunc()
     if not objects or #objects == 0 then return end
 
@@ -174,7 +166,6 @@ for espType, _ in pairs(GeneralTable.ESP) do
 end
 
 -- Add the UI toggle key picker below the Theme settings
-ThemeManager:ApplyToTab(Tabs.Config)
 ConfigGroup:AddLabel('UI Toggle Key'):AddKeyPicker('MenuKeybind', {
     Default = 'End',
     Text = 'Menu keybind',
@@ -184,8 +175,10 @@ ConfigGroup:AddLabel('UI Toggle Key'):AddKeyPicker('MenuKeybind', {
     end
 })
 
--- Initialize Configuration Saving
+-- Initialize Configuration Saving and Themes
+ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
+ThemeManager:ApplyToTab(Tabs.Config)
 SaveManager:SetFolder("Doors++")
 SaveManager:BuildConfigSection(Tabs.Config)
 
