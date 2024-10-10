@@ -102,6 +102,7 @@ end
 -- Function for applying ESP to specific objects
 local function ApplyESPForType(espType, getObjectsFunc, color)
     if not GeneralTable.ToggleStates[espType] then return end
+    if not getObjectsFunc then return end
     local objects = getObjectsFunc()
     if objects then
         for _, obj in pairs(objects) do
