@@ -1,8 +1,6 @@
 -- Global check to prevent multiple executions
-if getgenv().SeerGG_Doors_TheHotel then
-    return
-end
-getgenv().SeerGG_Doors_TheHotel = true
+if getgenv().DoorsPlusPlus then return end
+getgenv().DoorsPlusPlus = true
 
 -- Load Linoria UI Library
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
@@ -11,7 +9,7 @@ local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
 local Window = Library:CreateWindow({
-    Title = 'Seer.GG/Doors ESP',
+    Title = 'Doors ++',
     Center = true,
     AutoShow = true,
     Size = UDim2.new(0, 500, 0, 600),
@@ -64,7 +62,7 @@ local GeneralTable = {
     }
 }
 
--- Function to create and update Highlight ESP
+-- Helper function for creating highlights with default properties
 local function CreateHighlightESP(object, fillColor)
     if not object or not fillColor then return nil end
     local highlight = object:FindFirstChildOfClass("Highlight") or Instance.new("Highlight")
@@ -87,7 +85,7 @@ local function UpdateESPColors(espType, color)
     end
 end
 
--- Cleanup old rooms' ESPs
+-- Cleanup ESPs for rooms beyond the specified range
 local function CleanupOldRooms()
     local currentRoomIndex = tonumber(game:GetService("ReplicatedStorage").GameData.LatestRoom.Value)
     for roomIndex, objects in pairs(GeneralTable.RoomHistory) do
@@ -131,7 +129,7 @@ local function GetTargetObjects()
     local targets = {}
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj.Name == "KeyObtain" or obj.Name == "LiveBreakerPolePickup" or obj.Name == "LiveHintBook" or obj.Name == "LeverForGate" then
-            table.insert(targets, obj:FindFirstChild("Main") or obj)
+            table.insert(targets, obj)
         end
     end
     return targets
@@ -159,95 +157,69 @@ local function GetEntityObjects()
     return entityObjects
 end
 
-local function GetHandheldItemObjects()
-    local handheldObjects = {}
-    for _, player in pairs(game.Players:GetPlayers()) do
-        if player.Character then
-            for _, tool in pairs(player.Character:GetChildren()) do
-                if tool:IsA("Tool") then
-                    table.insert(handheldObjects, tool)
-                end
+local function GetAllItemObjects()
+    local items = {}
+    for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
+        for _, obj in pairs(room:GetDescendants()) do
+            if obj:IsA("Model") and (obj:GetAttribute("Pickup") or obj:GetAttribute("PropType")) then
+                table.insert(items, obj)
             end
         end
     end
-    return handheldObjects
+    for _, item in pairs(workspace.Drops:GetChildren()) do
+        table.insert(items, item)
+    end
+    return items
 end
 
--- Function to initialize ESP on existing objects
-local function InitializeESP()
-    for espType, isEnabled in pairs(GeneralTable.ToggleStates) do
-        if isEnabled then
-            local getFunc = ({
-                DoorESP = GetDoorObjects,
-                TargetESP = GetTargetObjects,
-                ChestESP = GetChestObjects,
-                EntityESP = GetEntityObjects,
-                HandheldItemESP = GetHandheldItemObjects
-            })[espType]
-            if getFunc then
-                ApplyESPForType(espType, getFunc, GeneralTable.ESPColors[espType])
-            end
-        end
-    end
-end
-
--- Event listener for entering a new room
-local latestRoom = game:GetService("ReplicatedStorage").GameData.LatestRoom
-latestRoom:GetPropertyChangedSignal("Value"):Connect(function()
-    local newRoom = workspace.CurrentRooms:FindFirstChild(tostring(latestRoom.Value))
-    if newRoom then
-        InitializeESP()
-        CleanupOldRooms()
-    end
-end)
-
--- UI setup and integration
-local VisualsGroup = Tabs.Main:AddLeftGroupbox('ESP Toggles')
-local ColorGroup = Tabs.Config:AddRightGroupbox('ESP Colors')
-
-for espType, _ in pairs(GeneralTable.ESP) do
-    local toggleText = espType:gsub("ESP", " ESP")
-    
-    -- Create the toggle for each ESP type and add a color picker
-    VisualsGroup:AddToggle(espType .. 'Toggle', {
-        Text = toggleText,
-        Default = false,
-        Callback = function(Value)
-            GeneralTable.ToggleStates[espType] = Value
-            if Value then
-                InitializeESP()
-            else
-                for _, highlight in pairs(GeneralTable.ESP[espType]) do
-                    if highlight then highlight:Destroy() end
-                end
-                GeneralTable.ESP[espType] = {}
-            end
-        end
-    }):AddColorPicker(espType .. 'ColorPicker', {
-        Default = GeneralTable.ESPColors[espType],
-        Title = toggleText .. ' Color',
-        Callback = function(Value)
-            GeneralTable.ESPColors[espType] = Value
-            UpdateESPColors(espType, Value)
+-- Add Color Pickers in Config Tab
+local ColorGroup = Tabs.Config:AddLeftGroupbox("ESP Colors")
+for espType, color in pairs(GeneralTable.ESPColors) do
+    ColorGroup:AddLabel(espType):AddColorPicker(espType, {
+        Default = color,
+        Callback = function(value)
+            GeneralTable.ESPColors[espType] = value
+            UpdateESPColors(espType, value)
         end
     })
 end
 
--- UI Settings
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
-SaveManager:BuildConfigSection(Tabs['UI Settings'])
-ThemeManager:ApplyToTab(Tabs['UI Settings'])
-SaveManager:SetFolder('Seer.GG/Doors/TheHotel')
+-- Add Visual Toggles
+local VisualGroup = Tabs.Main:AddLeftGroupbox("Visual Toggles")
+for espType, _ in pairs(GeneralTable.ESP) do
+    VisualGroup:AddToggle(espType, {
+        Text = espType:gsub("ESP", " ESP"),
+        Default = false,
+        Callback = function(value)
+            GeneralTable.ToggleStates[espType] = value
+            if value then
+                ApplyESPForType(espType, _G["Get" .. espType], GeneralTable.ESPColors[espType])
+            end
+        end
+    })
+end
 
+-- Initialize ESP
+local latestRoom = game:GetService("ReplicatedStorage").GameData.LatestRoom
+latestRoom:GetPropertyChangedSignal("Value"):Connect(function()
+    local newRoom = workspace.CurrentRooms:FindFirstChild(tostring(latestRoom.Value))
+    if newRoom then
+        for espType, _ in pairs(GeneralTable.ToggleStates) do
+            if GeneralTable.ToggleStates[espType] then
+                ApplyESPForType(espType, _G["Get" .. espType], GeneralTable.ESPColors[espType])
+            end
+        end
+        CleanupOldRooms()
+    end
+end)
+
+-- UI Settings
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
-MenuGroup:AddButton('Unload', function() Library:Unload() end)
-MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
+MenuGroup:AddLabel('Adjust UI Keybind'):AddKeyPicker('MenuKeybind', {
     Default = 'End',
-    NoUI = true,
     Text = 'Menu keybind'
 })
 Library.ToggleKeybind = Options.MenuKeybind
 SaveManager:LoadAutoloadConfig()
 
-Library:Notify('Seer.GG ESP loaded successfully.')
+Library:Notify('Doors ++ loaded successfully.')
