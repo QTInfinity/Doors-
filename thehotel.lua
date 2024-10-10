@@ -95,49 +95,34 @@ local function CleanupOldRooms()
     end
 end
 
--- Function for applying ESP to specific objects
+-- Apply ESP for each object type
 local function ApplyESPForType(espType, getObjectsFunc, color)
+    -- Validate the function and color
+    if not getObjectsFunc or not color then
+        warn("ApplyESPForType: Missing function or color for " .. espType)
+        return
+    end
+    
+    -- Retrieve objects using the function
     local objects = getObjectsFunc()
-    if not objects or #objects == 0 then return end
-
+    
+    -- Validate objects list
+    if not objects or #objects == 0 then
+        warn("ApplyESPForType: No objects found for " .. espType)
+        return
+    end
+    
+    -- Create highlights for each object
     for _, obj in pairs(objects) do
         if obj:IsA("Instance") and not obj:FindFirstChildOfClass("Highlight") then
             local highlight = CreateHighlightESP(obj, color)
             if highlight then
                 table.insert(GeneralTable.ESP[espType], highlight)
+            else
+                warn("ApplyESPForType: Failed to create highlight for " .. tostring(obj))
             end
         end
     end
-end
-
--- Define functions to retrieve objects for each ESP type
-local function GetDoorObjects()
-    local doorObjects = {}
-    for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
-        local door = room:FindFirstChild("Door") and room.Door:FindFirstChild("Door")
-        if door then 
-            table.insert(doorObjects, door) 
-        end
-    end
-    return doorObjects
-end
-
-local function GetTargetObjects()
-    local targets = {}
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj.Name == "KeyObtain" or obj.Name == "LiveBreakerPolePickup" or obj.Name == "LiveHintBook" or obj.Name == "LeverForGate" then
-            table.insert(targets, obj)
-        end
-    end
-    return targets
-end
-
-local function GetItemObjects()
-    local items = {}
-    for _, item in pairs(workspace.Drops:GetChildren()) do
-        table.insert(items, item)
-    end
-    return items
 end
 
 -- ESP Toggles and Color Configurations
@@ -153,7 +138,7 @@ for espType, _ in pairs(GeneralTable.ESP) do
     })
 end
 
--- Colors Configs and UI Toggle
+-- Configs and UI Toggle
 local ConfigGroup = Tabs.Config:AddRightGroupbox("ESP Colors")
 for espType, _ in pairs(GeneralTable.ESP) do
     ConfigGroup:AddLabel(espType .. " Color"):AddColorPicker(espType .. "Color", {
@@ -165,17 +150,17 @@ for espType, _ in pairs(GeneralTable.ESP) do
     })
 end
 
--- Add the UI toggle key picker below the Theme settings
+-- UI Key Picker
 ConfigGroup:AddLabel('UI Toggle Key'):AddKeyPicker('MenuKeybind', {
     Default = 'End',
     Text = 'Menu keybind',
     Mode = 'Toggle',
     Callback = function()
-        Library:Toggle() -- Use the correct method for toggling
+        Library:Toggle()
     end
 })
 
--- Initialize Configuration Saving and Themes
+-- ThemeManager Setup
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 ThemeManager:ApplyToTab(Tabs.Config)
