@@ -137,7 +137,6 @@ local function GetDoorObjects()
             table.insert(doorObjects, door) 
         end
     end
-    print("GetDoorObjects: Found", #doorObjects, "doors")
     return doorObjects
 end
 
@@ -148,66 +147,10 @@ local function GetTargetObjects()
             table.insert(targets, obj)
         end
     end
-    print("GetTargetObjects: Found", #targets, "targets")
     return targets
 end
 
-local function GetChestObjects()
-    local chestObjects = {}
-    for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
-        for _, obj in pairs(room:GetDescendants()) do
-            if obj.Name == "Main" and obj.Parent and obj.Parent.Name == "ChestBox" then
-                table.insert(chestObjects, obj)
-            end
-        end
-    end
-    print("GetChestObjects: Found", #chestObjects, "chests")
-    return chestObjects
-end
-
-local function GetEntityObjects()
-    local entityObjects = {}
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and not game.Players:GetPlayerFromCharacter(obj) then
-            table.insert(entityObjects, obj)
-        end
-    end
-    print("GetEntityObjects: Found", #entityObjects, "entities")
-    return entityObjects
-end
-
-local function GetAllItemObjects()
-    local items = {}
-    for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
-        for _, obj in pairs(room:GetDescendants()) do
-            if obj:IsA("Model") and (obj:GetAttribute("Pickup") or obj:GetAttribute("PropType")) then
-                table.insert(items, obj)
-            end
-        end
-    end
-    for _, item in pairs(workspace.Drops:GetChildren()) do
-        table.insert(items, item)
-    end
-    print("GetAllItemObjects: Found", #items, "items")
-    return items
-end
-
--- Initialize ESP
-local latestRoom = game:GetService("ReplicatedStorage").GameData.LatestRoom
-latestRoom:GetPropertyChangedSignal("Value"):Connect(function()
-    local newRoom = workspace.CurrentRooms:FindFirstChild(tostring(latestRoom.Value))
-    if newRoom then
-        print("Entered room:", latestRoom.Value)
-        ApplyESPForType("DoorESP", GetDoorObjects, GeneralTable.ESPColors.DoorESP)
-        ApplyESPForType("TargetESP", GetTargetObjects, GeneralTable.ESPColors.TargetESP)
-        ApplyESPForType("ChestESP", GetChestObjects, GeneralTable.ESPColors.ChestESP)
-        ApplyESPForType("EntityESP", GetEntityObjects, GeneralTable.ESPColors.EntityESP)
-        ApplyESPForType("ItemESP", GetAllItemObjects, GeneralTable.ESPColors.ItemESP)
-        CleanupOldRooms()
-    end
-end)
-
--- Add UI Elements
+-- ESP Toggles and Color Configurations
 local VisualGroup = Tabs.Main:AddLeftGroupbox("Visual Toggles")
 for espType, _ in pairs(GeneralTable.ESP) do
     VisualGroup:AddToggle(espType, {
@@ -223,8 +166,7 @@ end
 -- Colors Configs
 local ConfigGroup = Tabs.Config:AddRightGroupbox("ESP Colors")
 for espType, _ in pairs(GeneralTable.ESP) do
-    ConfigGroup:AddColorPicker(espType .. "Color", {
-        Text = espType:gsub("ESP", " Color"),
+    ConfigGroup:AddLabel(espType .. " Color"):AddColorPicker(espType .. "Color", {
         Default = GeneralTable.ESPColors[espType],
         Callback = function(value)
             GeneralTable.ESPColors[espType] = value
@@ -233,5 +175,9 @@ for espType, _ in pairs(GeneralTable.ESP) do
     })
 end
 
--- Finish loading message
+-- Load configuration settings
+SaveManager:SetLibrary(Library)
+SaveManager:SetFolder("Doors++")
+SaveManager:BuildConfigSection(Tabs["Config"])
+
 Library:Notify('Doors ++ loaded successfully.')
