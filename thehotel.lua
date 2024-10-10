@@ -125,6 +125,19 @@ local function ApplyESPForType(espType, getObjectsFunc, color)
     end
 end
 
+-- Define GetObjects functions for each ESP type
+local function GetDoorObjects()
+    -- Logic to get door objects
+    local objects = {}
+    for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
+        local door = room:FindFirstChild("Door")
+        if door then table.insert(objects, door) end
+    end
+    return objects
+end
+
+-- Define other functions like GetTargetObjects, GetPlayerObjects, etc. here...
+
 -- ESP Toggles and Color Configurations
 local VisualGroup = Tabs.Main:AddLeftGroupbox("Visual Toggles")
 for espType, _ in pairs(GeneralTable.ESP) do
@@ -168,3 +181,23 @@ SaveManager:SetFolder("Doors++")
 SaveManager:BuildConfigSection(Tabs.Config)
 
 Library:Notify('Doors ++ loaded successfully.')
+
+-- Monitor room changes and apply ESP
+local latestRoom = game:GetService("ReplicatedStorage").GameData.LatestRoom
+latestRoom:GetPropertyChangedSignal("Value"):Connect(function()
+    local newRoom = workspace.CurrentRooms:FindFirstChild(tostring(latestRoom.Value))
+    if newRoom then
+        InitializeESP()
+        CleanupOldRooms()
+    end
+end)
+
+-- Function to Initialize ESP
+local function InitializeESP()
+    for espType, _ in pairs(GeneralTable.ESP) do
+        if GeneralTable.ToggleStates[espType] then
+            local color = GeneralTable.ESPColors[espType] or Color3.new(1, 1, 1)
+            ApplyESPForType(espType, _G["Get"..espType.."Objects"], color)
+        end
+    end
+end
