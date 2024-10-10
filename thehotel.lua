@@ -101,7 +101,7 @@ end
 
 -- Function for applying ESP to specific objects
 local function ApplyESPForType(espType, getObjectsFunc, color)
-    if not GeneralTable.ToggleStates[espType] or not getObjectsFunc then return end
+    if not GeneralTable.ToggleStates[espType] then return end
     local objects = getObjectsFunc()
     if objects then
         for _, obj in pairs(objects) do
@@ -204,11 +204,11 @@ local latestRoom = game:GetService("ReplicatedStorage").GameData.LatestRoom
 latestRoom:GetPropertyChangedSignal("Value"):Connect(function()
     local newRoom = workspace.CurrentRooms:FindFirstChild(tostring(latestRoom.Value))
     if newRoom then
-        for espType, _ in pairs(GeneralTable.ToggleStates) do
-            if GeneralTable.ToggleStates[espType] then
-                ApplyESPForType(espType, _G["Get" .. espType], GeneralTable.ESPColors[espType])
-            end
-        end
+        ApplyESPForType("DoorESP", GetDoorObjects, GeneralTable.ESPColors.DoorESP)
+        ApplyESPForType("TargetESP", GetTargetObjects, GeneralTable.ESPColors.TargetESP)
+        ApplyESPForType("ChestESP", GetChestObjects, GeneralTable.ESPColors.ChestESP)
+        ApplyESPForType("EntityESP", GetEntityObjects, GeneralTable.ESPColors.EntityESP)
+        ApplyESPForType("ItemESP", GetAllItemObjects, GeneralTable.ESPColors.ItemESP)
         CleanupOldRooms()
     end
 end)
