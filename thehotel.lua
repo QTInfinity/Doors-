@@ -172,19 +172,21 @@ local function GetAllItemObjects()
     return items
 end
 
--- Add Color Pickers in Config Tab
-local ColorGroup = Tabs.Config:AddLeftGroupbox("ESP Colors")
-for espType, color in pairs(GeneralTable.ESPColors) do
-    ColorGroup:AddLabel(espType):AddColorPicker(espType, {
-        Default = color,
-        Callback = function(value)
-            GeneralTable.ESPColors[espType] = value
-            UpdateESPColors(espType, value)
-        end
-    })
-end
+-- Initialize ESP
+local latestRoom = game:GetService("ReplicatedStorage").GameData.LatestRoom
+latestRoom:GetPropertyChangedSignal("Value"):Connect(function()
+    local newRoom = workspace.CurrentRooms:FindFirstChild(tostring(latestRoom.Value))
+    if newRoom then
+        ApplyESPForType("DoorESP", GetDoorObjects, GeneralTable.ESPColors.DoorESP)
+        ApplyESPForType("TargetESP", GetTargetObjects, GeneralTable.ESPColors.TargetESP)
+        ApplyESPForType("ChestESP", GetChestObjects, GeneralTable.ESPColors.ChestESP)
+        ApplyESPForType("EntityESP", GetEntityObjects, GeneralTable.ESPColors.EntityESP)
+        ApplyESPForType("ItemESP", GetAllItemObjects, GeneralTable.ESPColors.ItemESP)
+        CleanupOldRooms()
+    end
+end)
 
--- Add Visual Toggles
+-- Add UI Elements
 local VisualGroup = Tabs.Main:AddLeftGroupbox("Visual Toggles")
 for espType, _ in pairs(GeneralTable.ESP) do
     VisualGroup:AddToggle(espType, {
@@ -199,19 +201,17 @@ for espType, _ in pairs(GeneralTable.ESP) do
     })
 end
 
--- Initialize ESP
-local latestRoom = game:GetService("ReplicatedStorage").GameData.LatestRoom
-latestRoom:GetPropertyChangedSignal("Value"):Connect(function()
-    local newRoom = workspace.CurrentRooms:FindFirstChild(tostring(latestRoom.Value))
-    if newRoom then
-        ApplyESPForType("DoorESP", GetDoorObjects, GeneralTable.ESPColors.DoorESP)
-        ApplyESPForType("TargetESP", GetTargetObjects, GeneralTable.ESPColors.TargetESP)
-        ApplyESPForType("ChestESP", GetChestObjects, GeneralTable.ESPColors.ChestESP)
-        ApplyESPForType("EntityESP", GetEntityObjects, GeneralTable.ESPColors.EntityESP)
-        ApplyESPForType("ItemESP", GetAllItemObjects, GeneralTable.ESPColors.ItemESP)
-        CleanupOldRooms()
-    end
-end)
+-- Update colors on change
+local ColorGroup = Tabs.Config:AddLeftGroupbox("ESP Colors")
+for espType, color in pairs(GeneralTable.ESPColors) do
+    ColorGroup:AddLabel(espType):AddColorPicker(espType, {
+        Default = color,
+        Callback = function(value)
+            GeneralTable.ESPColors[espType] = value
+            UpdateESPColors(espType, value)
+        end
+    })
+end
 
 -- UI Settings
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
