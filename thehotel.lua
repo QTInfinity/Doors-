@@ -20,8 +20,7 @@ local Window = Library:CreateWindow({
 
 local Tabs = {
     Main = Window:AddTab('Visuals'),
-    Config = Window:AddTab('Config'),
-    ['UI Settings'] = Window:AddTab('UI Settings')
+    Config = Window:AddTab('Config')
 }
 
 -- Store ESP Data and Colors
@@ -68,7 +67,6 @@ local function CreateHighlightESP(object, fillColor)
         print("CreateHighlightESP: Invalid object or color")
         return nil
     end
-    print("Creating highlight for object:", object.Name)
     local highlight = object:FindFirstChildOfClass("Highlight") or Instance.new("Highlight")
     highlight.Adornee = object
     highlight.FillColor = fillColor
@@ -82,7 +80,6 @@ end
 -- Update all ESPs of a specific type with a new color
 local function UpdateESPColors(espType, color)
     if not GeneralTable.ESP[espType] then return end
-    print("Updating colors for ESP type:", espType)
     for _, highlight in pairs(GeneralTable.ESP[espType]) do
         if highlight and highlight.Adornee then
             highlight.FillColor = color
@@ -107,17 +104,9 @@ end
 -- Function for applying ESP to specific objects
 local function ApplyESPForType(espType, getObjectsFunc, color)
     if not GeneralTable.ToggleStates[espType] then return end
-    if not getObjectsFunc then 
-        print("ApplyESPForType: No function for", espType)
-        return 
-    end
     local objects = getObjectsFunc()
-    if not objects or #objects == 0 then
-        print("ApplyESPForType: No objects found for", espType)
-        return 
-    end
+    if not objects or #objects == 0 then return end
 
-    print("Applying ESP for type:", espType)
     for _, obj in pairs(objects) do
         if obj:IsA("Instance") and not obj:FindFirstChildOfClass("Highlight") then
             local highlight = CreateHighlightESP(obj, color)
@@ -128,7 +117,7 @@ local function ApplyESPForType(espType, getObjectsFunc, color)
     end
 end
 
--- Functions to retrieve objects for different ESP types
+-- Define functions to retrieve objects for each ESP type
 local function GetDoorObjects()
     local doorObjects = {}
     for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
@@ -148,6 +137,14 @@ local function GetTargetObjects()
         end
     end
     return targets
+end
+
+local function GetItemObjects()
+    local items = {}
+    for _, item in pairs(workspace.Drops:GetChildren()) do
+        table.insert(items, item)
+    end
+    return items
 end
 
 -- ESP Toggles and Color Configurations
@@ -175,9 +172,20 @@ for espType, _ in pairs(GeneralTable.ESP) do
     })
 end
 
--- Load configuration settings
+-- Add UI toggle option to the Config tab
+ConfigGroup:AddLabel('UI Toggle Key'):AddKeyPicker('MenuKeybind', {
+    Default = 'End',
+    Text = 'Menu keybind',
+    Mode = 'Toggle',
+    Callback = function()
+        Library:ToggleUI()
+    end
+})
+
+-- Initialize Configuration Saving
 SaveManager:SetLibrary(Library)
 SaveManager:SetFolder("Doors++")
-SaveManager:BuildConfigSection(Tabs["Config"])
+SaveManager:BuildConfigSection(Tabs.Config)
+ThemeManager:ApplyToTab(Tabs.Config)
 
 Library:Notify('Doors ++ loaded successfully.')
