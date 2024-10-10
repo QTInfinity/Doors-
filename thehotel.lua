@@ -173,13 +173,14 @@ for espType, _ in pairs(GeneralTable.ESP) do
     })
 end
 
--- Add UI toggle option to the Config tab
+-- Add the UI toggle key picker below the Theme settings
+ThemeManager:ApplyToTab(Tabs.Config)
 ConfigGroup:AddLabel('UI Toggle Key'):AddKeyPicker('MenuKeybind', {
     Default = 'End',
     Text = 'Menu keybind',
     Mode = 'Toggle',
     Callback = function()
-        Library:ToggleUI()
+        Library:Toggle() -- Use the correct method for toggling
     end
 })
 
@@ -187,7 +188,5 @@ ConfigGroup:AddLabel('UI Toggle Key'):AddKeyPicker('MenuKeybind', {
 SaveManager:SetLibrary(Library)
 SaveManager:SetFolder("Doors++")
 SaveManager:BuildConfigSection(Tabs.Config)
-ThemeManager:SetLibrary(Library)
-ThemeManager:ApplyToTab(Tabs.Config)
 
 Library:Notify('Doors ++ loaded successfully.')
