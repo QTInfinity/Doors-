@@ -64,7 +64,11 @@ local GeneralTable = {
 
 -- Helper function for creating highlights with default properties
 local function CreateHighlightESP(object, fillColor)
-    if not object or not fillColor then return nil end
+    if not object or not fillColor then
+        print("CreateHighlightESP: Invalid object or color")
+        return nil
+    end
+    print("Creating highlight for object:", object.Name)
     local highlight = object:FindFirstChildOfClass("Highlight") or Instance.new("Highlight")
     highlight.Adornee = object
     highlight.FillColor = fillColor
@@ -78,6 +82,7 @@ end
 -- Update all ESPs of a specific type with a new color
 local function UpdateESPColors(espType, color)
     if not GeneralTable.ESP[espType] then return end
+    print("Updating colors for ESP type:", espType)
     for _, highlight in pairs(GeneralTable.ESP[espType]) do
         if highlight and highlight.Adornee then
             highlight.FillColor = color
@@ -102,15 +107,22 @@ end
 -- Function for applying ESP to specific objects
 local function ApplyESPForType(espType, getObjectsFunc, color)
     if not GeneralTable.ToggleStates[espType] then return end
-    if not getObjectsFunc then return end
+    if not getObjectsFunc then 
+        print("ApplyESPForType: No function for", espType)
+        return 
+    end
     local objects = getObjectsFunc()
-    if objects then
-        for _, obj in pairs(objects) do
-            if obj:IsA("Instance") and not obj:FindFirstChildOfClass("Highlight") then
-                local highlight = CreateHighlightESP(obj, color)
-                if highlight then
-                    table.insert(GeneralTable.ESP[espType], highlight)
-                end
+    if not objects or #objects == 0 then
+        print("ApplyESPForType: No objects found for", espType)
+        return 
+    end
+
+    print("Applying ESP for type:", espType)
+    for _, obj in pairs(objects) do
+        if obj:IsA("Instance") and not obj:FindFirstChildOfClass("Highlight") then
+            local highlight = CreateHighlightESP(obj, color)
+            if highlight then
+                table.insert(GeneralTable.ESP[espType], highlight)
             end
         end
     end
@@ -121,8 +133,11 @@ local function GetDoorObjects()
     local doorObjects = {}
     for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
         local door = room:FindFirstChild("Door") and room.Door:FindFirstChild("Door")
-        if door then table.insert(doorObjects, door) end
+        if door then 
+            table.insert(doorObjects, door) 
+        end
     end
+    print("GetDoorObjects: Found", #doorObjects, "doors")
     return doorObjects
 end
 
@@ -133,6 +148,7 @@ local function GetTargetObjects()
             table.insert(targets, obj)
         end
     end
+    print("GetTargetObjects: Found", #targets, "targets")
     return targets
 end
 
@@ -145,6 +161,7 @@ local function GetChestObjects()
             end
         end
     end
+    print("GetChestObjects: Found", #chestObjects, "chests")
     return chestObjects
 end
 
@@ -155,6 +172,7 @@ local function GetEntityObjects()
             table.insert(entityObjects, obj)
         end
     end
+    print("GetEntityObjects: Found", #entityObjects, "entities")
     return entityObjects
 end
 
@@ -170,6 +188,7 @@ local function GetAllItemObjects()
     for _, item in pairs(workspace.Drops:GetChildren()) do
         table.insert(items, item)
     end
+    print("GetAllItemObjects: Found", #items, "items")
     return items
 end
 
@@ -178,6 +197,7 @@ local latestRoom = game:GetService("ReplicatedStorage").GameData.LatestRoom
 latestRoom:GetPropertyChangedSignal("Value"):Connect(function()
     local newRoom = workspace.CurrentRooms:FindFirstChild(tostring(latestRoom.Value))
     if newRoom then
+        print("Entered room:", latestRoom.Value)
         ApplyESPForType("DoorESP", GetDoorObjects, GeneralTable.ESPColors.DoorESP)
         ApplyESPForType("TargetESP", GetTargetObjects, GeneralTable.ESPColors.TargetESP)
         ApplyESPForType("ChestESP", GetChestObjects, GeneralTable.ESPColors.ChestESP)
@@ -195,18 +215,17 @@ for espType, _ in pairs(GeneralTable.ESP) do
         Default = false,
         Callback = function(value)
             GeneralTable.ToggleStates[espType] = value
-            if value then
-                ApplyESPForType(espType, _G["Get" .. espType], GeneralTable.ESPColors[espType])
-            end
+            ApplyESPForType(espType, _G["Get"..espType.."Objects"], GeneralTable.ESPColors[espType])
         end
     })
 end
 
--- Update colors on change
-local ColorGroup = Tabs.Config:AddLeftGroupbox("ESP Colors")
-for espType, color in pairs(GeneralTable.ESPColors) do
-    ColorGroup:AddLabel(espType):AddColorPicker(espType, {
-        Default = color,
+-- Colors Configs
+local ConfigGroup = Tabs.Config:AddRightGroupbox("ESP Colors")
+for espType, _ in pairs(GeneralTable.ESP) do
+    ConfigGroup:AddColorPicker(espType .. "Color", {
+        Text = espType:gsub("ESP", " Color"),
+        Default = GeneralTable.ESPColors[espType],
         Callback = function(value)
             GeneralTable.ESPColors[espType] = value
             UpdateESPColors(espType, value)
@@ -214,13 +233,5 @@ for espType, color in pairs(GeneralTable.ESPColors) do
     })
 end
 
--- UI Settings
-local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
-MenuGroup:AddLabel('Adjust UI Keybind'):AddKeyPicker('MenuKeybind', {
-    Default = 'End',
-    Text = 'Menu keybind'
-})
-Library.ToggleKeybind = Options.MenuKeybind
-SaveManager:LoadAutoloadConfig()
-
+-- Finish loading message
 Library:Notify('Doors ++ loaded successfully.')
