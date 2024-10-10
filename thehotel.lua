@@ -8,6 +8,7 @@ local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
+-- Initialize UI and Configurations
 local Window = Library:CreateWindow({
     Title = 'Doors ++',
     Center = true,
@@ -160,7 +161,7 @@ for espType, _ in pairs(GeneralTable.ESP) do
     })
 end
 
--- Colors Configs
+-- Colors Configs and UI Toggle
 local ConfigGroup = Tabs.Config:AddRightGroupbox("ESP Colors")
 for espType, _ in pairs(GeneralTable.ESP) do
     ConfigGroup:AddLabel(espType .. " Color"):AddColorPicker(espType .. "Color", {
@@ -186,6 +187,7 @@ ConfigGroup:AddLabel('UI Toggle Key'):AddKeyPicker('MenuKeybind', {
 SaveManager:SetLibrary(Library)
 SaveManager:SetFolder("Doors++")
 SaveManager:BuildConfigSection(Tabs.Config)
+ThemeManager:SetLibrary(Library)
 ThemeManager:ApplyToTab(Tabs.Config)
 
 Library:Notify('Doors ++ loaded successfully.')
