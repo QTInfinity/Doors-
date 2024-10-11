@@ -62,7 +62,7 @@ local function CreateHighlightESP(object, fillColor)
     if not object or not fillColor then
         return nil
     end
-    local highlight = object:FindFirstChildOfClass("Highlight") or Instance.new("Highlight")
+    local highlight = Instance.new("Highlight")
     highlight.Adornee = object
     highlight.FillColor = fillColor
     highlight.OutlineColor = Color3.new(1, 1, 1)
@@ -127,7 +127,6 @@ end
 
 -- Define GetObjects functions for each ESP type
 local function GetDoorObjects()
-    -- Logic to get door objects
     local objects = {}
     for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
         local door = room:FindFirstChild("Door")
@@ -136,7 +135,19 @@ local function GetDoorObjects()
     return objects
 end
 
--- Define other functions like GetTargetObjects, GetPlayerObjects, etc. here...
+local function GetTargetObjects()
+    local objects = {}
+    for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
+        for _, obj in pairs(room:GetDescendants()) do
+            if obj.Name == "LeverForGate" then
+                table.insert(objects, obj)
+            end
+        end
+    end
+    return objects
+end
+
+-- Define other functions like GetEntityObjects, GetItemObjects, etc. here...
 
 -- ESP Toggles and Color Configurations
 local VisualGroup = Tabs.Main:AddLeftGroupbox("Visual Toggles")
