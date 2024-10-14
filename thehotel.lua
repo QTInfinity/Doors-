@@ -97,26 +97,27 @@ ESPGroup:AddToggle('DoorESP', {
     end
 })
 
--- Config Tab for Keybinding to toggle the UI itself (Corrected)
+-- Config Tab for Keybinding to toggle the UI itself (Corrected based on your example)
 local ConfigGroup = Tabs.Config:AddLeftGroupbox('Config')
 ConfigGroup:AddLabel('Keybind to Toggle UI')
 
--- Correctly setting up the keybind to toggle the UI visibility
-ConfigGroup:AddKeyPicker('ToggleUIMenuKeybind', {
+-- Correctly setting up the keybind using AddKeyPicker based on your example
+ConfigGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
     Default = 'End', -- Default key to toggle UI
-    Text = 'Toggle UI Key',
-    NoUI = true, -- Hides the keybind from the keybind menu
-    Mode = 'Toggle', -- Mode: Toggle or Hold
+    NoUI = true, -- Hide the keybind from the keybind menu
+    Text = 'Toggle UI Keybind',
+    Mode = 'Toggle', -- Modes: Always, Toggle, Hold
     Callback = function()
         -- Toggle the UI visibility
-        Library.ToggleUI()
+        if Library.ToggleUI then
+            Library:ToggleUI()
+        end
     end
 })
 
 -- Additional UI Settings (Themes, Saves)
 local MenuGroup = Tabs.Config:AddLeftGroupbox('UI Settings')
 MenuGroup:AddButton('Unload', function() Library:Unload() end)
-MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'End', NoUI = true, Text = 'Menu keybind' })
 
 -- Theme and Save manager setup
 ThemeManager:SetLibrary(Library)
