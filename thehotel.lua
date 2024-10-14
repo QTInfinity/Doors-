@@ -69,7 +69,7 @@ local function ManageDoorESP()
     end
 end
 
--- Function to manage target ESP (for KeyObtain specifically)
+-- Function to manage target ESP for KeyObtain, LeverForGate, LiveHintBook, and others
 local function ManageTargetESP()
     ClearESP("Targets") -- Ensure previous ESP is cleared
     local currentRoomModel = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
@@ -78,7 +78,13 @@ local function ManageTargetESP()
         if assetsFolder then
             for _, object in ipairs(assetsFolder:GetChildren()) do
                 if object.Name == "KeyObtain" then
-                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0)) -- Red highlight for keys
+                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0)) -- Red highlight for KeyObtain
+                elseif object.Name == "LeverForGate" then
+                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 255, 0)) -- Yellow highlight for Gate Lever
+                elseif object.Name == "LiveHintBook" then
+                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(0, 255, 255)) -- Cyan highlight for Hint Book
+                elseif object.Name == "LiveBreakerPolePickup" then
+                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(128, 0, 255)) -- Purple highlight for Breaker
                 end
             end
         end
@@ -113,11 +119,11 @@ ESPGroup:AddToggle('DoorESP', {
     end
 })
 
--- UI Control for Target ESP Toggle (KeyObtain only)
+-- UI Control for Target ESP Toggle
 ESPGroup:AddToggle('TargetESP', {
-    Text = 'Enable Key ESP',
+    Text = 'Enable Target ESP',
     Default = true,
-    Tooltip = 'Toggles Key ESP on or off',
+    Tooltip = 'Toggles Target ESP on or off',
     Callback = function(enabled)
         if enabled then
             ManageTargetESP()
@@ -131,26 +137,16 @@ ESPGroup:AddToggle('TargetESP', {
 local ConfigGroup = Tabs.Config:AddLeftGroupbox('Config')
 ConfigGroup:AddLabel('Keybind to Toggle UI')
 
--- Dynamic UI Toggle
-Library.ToggleUI = function()
-    Window.Visible = not Window.Visible
-end
-
--- Correctly setting up the keybind using AddKeyPicker
+-- Correctly setting up the keybind using AddKeyPicker based on wally's example
 ConfigGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
     Default = 'RightShift', -- Default key to toggle UI
     NoUI = true, -- Hide the keybind from the keybind menu
     Text = 'Toggle UI Keybind',
     Mode = 'Toggle', -- Modes: Always, Toggle, Hold
-    Callback = function()
-        Library.ToggleUI()
+    Callback = function(Value)
+        Window:SetVisible(not Window.Visible)
     end
 })
-
--- Ensure keybind dynamically updates the UI toggle behavior
-Options.MenuKeybind:OnChanged(function()
-    Options.MenuKeybind.Callback = Library.ToggleUI
-end)
 
 -- Additional UI Settings (Themes, Saves)
 local MenuGroup = Tabs.Config:AddLeftGroupbox('UI Settings')
