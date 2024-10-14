@@ -174,14 +174,19 @@ ConfigGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
     Text = 'Toggle UI Keybind',
     Mode = 'Toggle',
     Callback = function(NewKey)
-        -- Update the keybind dynamically
-        Library.ToggleKeybind = tostring(NewKey)
+        -- Update the keybind dynamically, ensure it's a string
+        if typeof(NewKey) == 'string' then
+            Library.ToggleKeybind = NewKey
+        else
+            Library.ToggleKeybind = tostring(NewKey)
+        end
     end
 })
 
 -- Toggle the UI on key press
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if input.KeyCode == Enum.KeyCode[Library.ToggleKeybind] and not gameProcessed then
+    local key = Library.ToggleKeybind
+    if key and Enum.KeyCode[key] and input.KeyCode == Enum.KeyCode[key] and not gameProcessed then
         Library:ToggleUI()
     end
 end)
