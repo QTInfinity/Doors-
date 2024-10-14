@@ -33,6 +33,17 @@ local MainTable = {
     ESPEnabled = true -- Control whether ESP is enabled or not
 }
 
+-- General ESP Highlight Function
+function ESPHighlight(object, color)
+    local highlight = Instance.new("Highlight")
+    highlight.Parent = object
+    highlight.FillColor = color or Color3.fromRGB(0, 255, 0) -- Default to green if no color provided
+    highlight.FillTransparency = 0.75
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.OutlineTransparency = 0
+    return highlight
+end
+
 -- Function to add ESP to doors
 function DoorESP()
     if not MainTable.ESPEnabled then return end -- If ESP is disabled, don't run
@@ -43,13 +54,7 @@ function DoorESP()
     -- Iterate through the objects in the current room and find doors
     for _, object in ipairs(currentRoomModel:GetChildren()) do
         if object.Name == "Door" and not MainTable.ESP.Doors[object] then -- Check if the object is a door and not already highlighted
-            local highlight = Instance.new("Highlight")
-            highlight.Parent = object
-            highlight.FillColor = Color3.fromRGB(0, 255, 0) -- Green color for doors
-            highlight.FillTransparency = 0.75
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.OutlineTransparency = 0
-            
+            local highlight = ESPHighlight(object) -- Use the generalized ESPHighlight function
             MainTable.ESP.Doors[object] = highlight -- Store the highlight in the table
         end
     end
@@ -92,19 +97,19 @@ ESPGroup:AddToggle('DoorESP', {
     end
 })
 
--- Config Tab for Keybinding
+-- Config Tab for Keybinding to toggle the UI itself
 local ConfigGroup = Tabs.Config:AddLeftGroupbox('Config')
-ConfigGroup:AddLabel('Keybind to Toggle ESP')
-ConfigGroup:AddKeyPicker('ToggleESPKeybind', {
-    Default = 'G', -- Default key to toggle ESP
-    Text = 'Toggle ESP Key',
+ConfigGroup:AddLabel('Keybind to Toggle UI')
+ConfigGroup:AddKeyPicker('ToggleUIMenuKeybind', {
+    Default = 'End', -- Default key to toggle UI
+    Text = 'Toggle UI Key',
     Mode = 'Toggle', -- Toggle or Hold
-    Callback = function(value)
-        MainTable.ESPEnabled = not MainTable.ESPEnabled
-        if MainTable.ESPEnabled then
-            RoomMonitor()
+    Callback = function()
+        -- Toggle the UI visibility
+        if Library.Visible then
+            Library:Close() -- Close the UI
         else
-            ClearESP()
+            Library:Open() -- Open the UI
         end
     end
 })
