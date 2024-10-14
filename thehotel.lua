@@ -33,13 +33,28 @@ local Tabs = {
 local ESPGroup = Tabs.Visuals:AddLeftGroupbox('ESP Options')
 
 -- Function to apply general ESP (used for doors and targets)
-local function ApplyESP(object, color)
+local function ApplyESP(object, color, text)
     local highlight = Instance.new("Highlight")
     highlight.Parent = object
     highlight.FillColor = color or Color3.fromRGB(0, 255, 0)
     highlight.FillTransparency = 0.75
     highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
     highlight.OutlineTransparency = 0
+
+    -- Optional: Apply a BillboardGui for displaying text above the object
+    if text then
+        local billboard = Instance.new("BillboardGui", object)
+        billboard.Size = UDim2.new(0, 100, 0, 50)
+        billboard.Adornee = object
+        billboard.AlwaysOnTop = true
+
+        local label = Instance.new("TextLabel", billboard)
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.Text = text
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.BackgroundTransparency = 1
+    end
+
     return highlight
 end
 
@@ -69,14 +84,22 @@ local function ManageDoorESP()
     end
 end
 
--- Function to manage target ESP (for KeyObtain, LeverForGate, LiveHintBook)
+-- Function to manage target ESP (for KeyObtain, LeverForGate, LiveHintBook, etc.)
 local function ManageTargetESP()
     ClearESP("Targets") -- Ensure previous ESP is cleared
     local currentRoomModel = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
     if currentRoomModel then
         for _, object in ipairs(currentRoomModel:GetChildren()) do
-            if object.Name == "KeyObtain" or object.Name == "LeverForGate" or object.Name == "LiveHintBook" then
-                ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0)) -- Store the red highlight
+            if object.Name == "KeyObtain" then
+                ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0), "Key")
+            elseif object.Name == "ElectricalKeyObtain" then
+                ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0), "Electrical Key")
+            elseif object.Name == "LeverForGate" then
+                ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0), "Gate Lever")
+            elseif object.Name == "LiveHintBook" then
+                ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0), "Hint Book")
+            elseif object.Name == "LiveBreakerPolePickup" then
+                ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0), "Breaker")
             end
         end
     end
@@ -128,17 +151,26 @@ ESPGroup:AddToggle('TargetESP', {
 local ConfigGroup = Tabs.Config:AddLeftGroupbox('Config')
 ConfigGroup:AddLabel('Keybind to Toggle UI')
 
--- Correctly setting up the keybind using AddKeyPicker based on mspaint's approach
+-- Dynamic UI Toggle
+Library.ToggleUI = function()
+    Window.Visible = not Window.Visible
+end
+
+-- Correctly setting up the keybind using AddKeyPicker
 ConfigGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
     Default = 'RightShift', -- Default key to toggle UI
     NoUI = true, -- Hide the keybind from the keybind menu
     Text = 'Toggle UI Keybind',
     Mode = 'Toggle', -- Modes: Always, Toggle, Hold
     Callback = function()
-        -- Toggling the main UI window visibility, instead of just the keybind frame
-        Window.Visible = not Window.Visible
+        Library.ToggleUI()
     end
 })
+
+-- Ensure keybind dynamically updates the UI toggle behavior
+Options.MenuKeybind:OnChanged(function()
+    Options.MenuKeybind.Callback = Library.ToggleUI
+end)
 
 -- Additional UI Settings (Themes, Saves)
 local MenuGroup = Tabs.Config:AddLeftGroupbox('UI Settings')
