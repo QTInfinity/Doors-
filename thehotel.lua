@@ -9,7 +9,7 @@ local Workspace = game:GetService("Workspace")
 local Connections = {}
 local ESPObjects = {
     Doors = {},
-    Targets = {},
+    Targets = {}, -- Target ESP storage
 }
 
 -- UI Library setup
@@ -33,28 +33,13 @@ local Tabs = {
 local ESPGroup = Tabs.Visuals:AddLeftGroupbox('ESP Options')
 
 -- Function to apply general ESP (used for doors and targets)
-local function ApplyESP(object, color, text)
+local function ApplyESP(object, color)
     local highlight = Instance.new("Highlight")
     highlight.Parent = object
     highlight.FillColor = color or Color3.fromRGB(0, 255, 0)
     highlight.FillTransparency = 0.75
     highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
     highlight.OutlineTransparency = 0
-
-    -- Optional: Apply a BillboardGui for displaying text above the object
-    if text then
-        local billboard = Instance.new("BillboardGui", object)
-        billboard.Size = UDim2.new(0, 100, 0, 50)
-        billboard.Adornee = object
-        billboard.AlwaysOnTop = true
-
-        local label = Instance.new("TextLabel", billboard)
-        label.Size = UDim2.new(1, 0, 1, 0)
-        label.Text = text
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
-        label.BackgroundTransparency = 1
-    end
-
     return highlight
 end
 
@@ -84,18 +69,16 @@ local function ManageDoorESP()
     end
 end
 
--- Function to manage Key ESP (only highlights KeyObtain for now)
+-- Function to manage target ESP (for KeyObtain specifically)
 local function ManageTargetESP()
     ClearESP("Targets") -- Ensure previous ESP is cleared
     local currentRoomModel = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
-    
     if currentRoomModel then
         local assetsFolder = currentRoomModel:FindFirstChild("Assets")
         if assetsFolder then
             for _, object in ipairs(assetsFolder:GetChildren()) do
-                -- Check for KeyObtain inside the Assets folder
-                if object:FindFirstChild("KeyObtain") then
-                    ESPObjects.Targets[object.KeyObtain] = ApplyESP(object.KeyObtain, Color3.fromRGB(255, 0, 0), "Key")
+                if object.Name == "KeyObtain" then
+                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0)) -- Red highlight for keys
                 end
             end
         end
