@@ -1,4 +1,3 @@
-
 -- Importing the Rayfield UI Library
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 -- Optional: Enabling secure mode for detection reduction (uncomment if needed)
@@ -20,29 +19,33 @@ local Window = Rayfield:CreateWindow({
     },
     KeySystem = false,
 })
+
 -- Creating tabs for UI
 local VisualsTab = Window:CreateTab("Visuals", 4483362458) -- Use any relevant image ID
 local ConfigTab = Window:CreateTab("Config", 4483362458)
+
 -- Creating sections for ESP Options and Configurations
 local ESPSection = VisualsTab:CreateSection("ESP Options")
 local ConfigSection = ConfigTab:CreateSection("Config")
+
 -- Default services and player setup
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
+
 -- Centralized tables for ESP objects
 local ESPObjects = {
     Doors = {},
-    Targets = {},
+    Entity = {}, -- Merged Entity and SideEntity here
     Chests = {},
-    Entities = {},
     Gold = {},
-    Items = {},
     Guiding = {},
-    Players = {},
-    Hideables = {},
+    Items = {}, -- Merged Item and DroppedItem here
+    Players = {}, -- Renamed Player to Players
+    Hideables = {}, -- Renamed HidingSpot to Hideables
 }
--- Function to apply general ESP (used for doors, targets, and chests)
+
+-- Function to apply general ESP (used for doors, entity, etc.)
 local function ApplyESP(object, color)
     local highlight = Instance.new("Highlight")
     highlight.Parent = object
@@ -52,7 +55,8 @@ local function ApplyESP(object, color)
     highlight.OutlineTransparency = 0
     return highlight
 end
--- Function to clear ESP for a specific type
+
+-- Function to clear ESP for a specific type (Doors, Entity, etc.)
 local function ClearESP(type)
     for object, highlight in pairs(ESPObjects[type]) do
         if highlight then
@@ -61,7 +65,8 @@ local function ClearESP(type)
     end
     ESPObjects[type] = {} -- Clear the table
 end
--- Function for Doors ESP
+
+-- Functions for managing ESP for each object type
 local function ManageDoorESP()
     ClearESP("Doors")
     local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
@@ -73,102 +78,101 @@ local function ManageDoorESP()
         end
     end
 end
--- Function for Target ESP
-local function ManageTargetESP()
-    ClearESP("Targets")
-    local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
-    if currentRoom then
-        local assetsFolder = currentRoom:FindFirstChild("Assets")
-        if assetsFolder then
-            for _, object in ipairs(assetsFolder:GetChildren()) do
-                local color = nil
-                if object.Name == "KeyObtain" then
-                    color = Color3.fromRGB(255, 0, 0)
-                elseif object.Name == "LeverForGate" then
-                    color = Color3.fromRGB(255, 255, 0)
-                elseif object.Name == "LiveHintBook" then
-                    color = Color3.fromRGB(0, 255, 255)
-                elseif object.Name == "LiveBreakerPolePickup" then
-                    color = Color3.fromRGB(128, 0, 255)
-                end
-                if color then
-                    ESPObjects.Targets[object] = ApplyESP(object, color)
-                end
-            end
-        end
-    end
-end
--- Function for managing Entities (merged Entity and SideEntity)
+
 local function ManageEntityESP()
-    ClearESP("Entities")
+    ClearESP("Entity")
     local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
     if currentRoom then
-        for _, entity in ipairs(currentRoom:GetChildren()) do
-            if entity:IsA("Model") and entity:FindFirstChild("PrimaryPart") then
-                ESPObjects.Entities[entity] = ApplyESP(entity.PrimaryPart, Color3.fromRGB(255, 100, 100))
+        for _, object in ipairs(currentRoom:GetChildren()) do
+            -- Combine checks for both Entity and SideEntity here
+            if object.Name == "Entity" or object.Name == "SideEntity" then
+                ESPObjects.Entity[object] = ApplyESP(object, Color3.fromRGB(255, 100, 0))
             end
         end
     end
 end
--- Function for managing Gold ESP
+
 local function ManageGoldESP()
     ClearESP("Gold")
     local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
     if currentRoom then
-        for _, asset in ipairs(currentRoom:GetChildren()) do
-            if asset.Name == "GoldPile" and asset:FindFirstChild("PrimaryPart") then
-                ESPObjects.Gold[asset] = ApplyESP(asset.PrimaryPart, Color3.fromRGB(255, 215, 0))  -- Gold color
+        for _, gold in ipairs(currentRoom:GetDescendants()) do
+            if gold.Name == "GoldPile" then
+                ESPObjects.Gold[gold] = ApplyESP(gold, Color3.fromRGB(255, 215, 0))
             end
         end
     end
 end
--- Function for managing Items (merged Item and DroppedItem ESP)
-local function ManageItemsESP()
-    ClearESP("Items")
-    local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
-    if currentRoom then
-        for _, item in ipairs(currentRoom:GetChildren()) do
-            if item:GetAttribute("IsDropped") or item:GetAttribute("IsItem") and item:FindFirstChild("PrimaryPart") then
-                ESPObjects.Items[item] = ApplyESP(item.PrimaryPart, Color3.fromRGB(0, 255, 100))
-            end
-        end
-    end
-end
--- Function for Guiding ESP
+
 local function ManageGuidingESP()
     ClearESP("Guiding")
     local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
     if currentRoom then
-        for _, guidance in ipairs(currentRoom:GetChildren()) do
-            if guidance.Name == "GuidingLight" and guidance:FindFirstChild("PrimaryPart") then
-                ESPObjects.Guiding[guidance] = ApplyESP(guidance.PrimaryPart, Color3.fromRGB(0, 255, 255))  -- Cyan color
+        for _, guiding in ipairs(currentRoom:GetDescendants()) do
+            if guiding.Name == "GuidingLight" then
+                ESPObjects.Guiding[guiding] = ApplyESP(guiding, Color3.fromRGB(0, 255, 255))
             end
         end
     end
 end
--- Function for managing Hideables (renamed from HidingSpot)
+
+local function ManageItemsESP()
+    ClearESP("Items")
+    local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
+    if currentRoom then
+        for _, item in ipairs(currentRoom:GetDescendants()) do
+            -- Merged Item and DroppedItem checks here
+            if item.Name == "Item" or item.Name == "DroppedItem" then
+                ESPObjects.Items[item] = ApplyESP(item, Color3.fromRGB(0, 255, 100))
+            end
+        end
+    end
+end
+
+local function ManagePlayerESP()
+    ClearESP("Players")
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local character = player.Character
+            if character then
+                ESPObjects.Players[player] = ApplyESP(character, Color3.fromRGB(0, 255, 255))
+            end
+        end
+    end
+end
+
 local function ManageHideablesESP()
     ClearESP("Hideables")
     local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
     if currentRoom then
-        for _, asset in ipairs(currentRoom:GetChildren()) do
-            if (asset.Name == "Wardrobe" or asset.Name == "Locker") and asset:FindFirstChild("PrimaryPart") then
-                ESPObjects.Hideables[asset] = ApplyESP(asset.PrimaryPart, Color3.fromRGB(100, 100, 255))  -- Blue color
+        for _, hidingSpot in ipairs(currentRoom:GetChildren()) do
+            if hidingSpot:GetAttribute("HidingSpot") then
+                ESPObjects.Hideables[hidingSpot] = ApplyESP(hidingSpot, Color3.fromRGB(255, 255, 255))
             end
         end
     end
 end
--- Function for Player ESP
-local function ManagePlayersESP()
-    ClearESP("Players")
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("PrimaryPart") then
-            ESPObjects.Players[player.Character] = ApplyESP(player.Character.PrimaryPart, Color3.fromRGB(255, 0, 0))  -- Red color
-        end
-    end
+
+-- Event handler for room change, instant application of ESP
+local function OnRoomChange()
+    ManageDoorESP()
+    ManageEntityESP()
+    ManageGoldESP()
+    ManageGuidingESP()
+    ManageItemsESP()
+    ManagePlayerESP()
+    ManageHideablesESP()
 end
--- Adding toggles for various ESP types
-local DoorToggle = VisualsTab:CreateToggle({
+
+-- Detect room changes and apply ESP instantly without delay
+local function MonitorRoomChanges()
+    OnRoomChange()
+    LocalPlayer:GetAttributeChangedSignal("CurrentRoom"):Connect(OnRoomChange)
+end
+MonitorRoomChanges()
+
+-- Adding toggles for the new ESP types
+VisualsTab:CreateToggle({
     Name = "Door ESP",
     CurrentValue = false,
     Flag = "DoorESP",
@@ -180,19 +184,8 @@ local DoorToggle = VisualsTab:CreateToggle({
         end
     end,
 })
-local TargetToggle = VisualsTab:CreateToggle({
-    Name = "Target ESP",
-    CurrentValue = false,
-    Flag = "TargetESP",
-    Callback = function(state)
-        if state then
-            ManageTargetESP()
-        else
-            ClearESP("Targets")
-        end
-    end,
-})
-local EntityToggle = VisualsTab:CreateToggle({
+
+VisualsTab:CreateToggle({
     Name = "Entity ESP",
     CurrentValue = false,
     Flag = "EntityESP",
@@ -200,11 +193,12 @@ local EntityToggle = VisualsTab:CreateToggle({
         if state then
             ManageEntityESP()
         else
-            ClearESP("Entities")
+            ClearESP("Entity")
         end
     end,
 })
-local GoldToggle = VisualsTab:CreateToggle({
+
+VisualsTab:CreateToggle({
     Name = "Gold ESP",
     CurrentValue = false,
     Flag = "GoldESP",
@@ -216,7 +210,21 @@ local GoldToggle = VisualsTab:CreateToggle({
         end
     end,
 })
-local ItemsToggle = VisualsTab:CreateToggle({
+
+VisualsTab:CreateToggle({
+    Name = "Guiding ESP",
+    CurrentValue = false,
+    Flag = "GuidingESP",
+    Callback = function(state)
+        if state then
+            ManageGuidingESP()
+        else
+            ClearESP("Guiding")
+        end
+    end,
+})
+
+VisualsTab:CreateToggle({
     Name = "Items ESP",
     CurrentValue = false,
     Flag = "ItemsESP",
@@ -228,19 +236,21 @@ local ItemsToggle = VisualsTab:CreateToggle({
         end
     end,
 })
-local GuidingToggle = VisualsTab:CreateToggle({
-    Name = "Guiding Light ESP",
+
+VisualsTab:CreateToggle({
+    Name = "Players ESP",
     CurrentValue = false,
-    Flag = "GuidingESP",
+    Flag = "PlayersESP",
     Callback = function(state)
         if state then
-            ManageGuidingESP()
+            ManagePlayerESP()
         else
-            ClearESP("Guiding")
+            ClearESP("Players")
         end
     end,
 })
-local HideablesToggle = VisualsTab:CreateToggle({
+
+VisualsTab:CreateToggle({
     Name = "Hideables ESP",
     CurrentValue = false,
     Flag = "HideablesESP",
@@ -252,43 +262,8 @@ local HideablesToggle = VisualsTab:CreateToggle({
         end
     end,
 })
-local PlayersToggle = VisualsTab:CreateToggle({
-    Name = "Players ESP",
-    CurrentValue = false,
-    Flag = "PlayersESP",
-    Callback = function(state)
-        if state then
-            ManagePlayersESP()
-        else
-            ClearESP("Players")
-        end
-    end,
-})
--- Event handler for room change
-local function OnRoomChange()
-    ManageEntityESP()
-    ManageGoldESP()
-    ManageItemsESP()
-    ManageGuidingESP()
-    ManageHideablesESP()
-    ManagePlayersESP()
-end
--- Monitor room changes
-local function MonitorRoomChanges()
-    OnRoomChange()
-    local roomChangedConnection = LocalPlayer:GetAttributeChangedSignal("CurrentRoom"):Connect(OnRoomChange)
-    table.insert(ESPObjects, roomChangedConnection)
-end
-MonitorRoomChanges()
--- Keybind to toggle UI visibility
-ConfigSection:CreateKeybind({
-    Name = "Toggle UI",
-    CurrentKeybind = "RightShift",
-    Flag = "ToggleUI",
-    Callback = function()
-        Rayfield:Destroy()
-    end,
-})
+
+-- Remove Keybind Section (as requested)
 -- Button to unload the script
 ConfigSection:CreateButton({
     Name = "Unload",
@@ -297,12 +272,13 @@ ConfigSection:CreateButton({
         print("ESP Menu Unloaded")
     end,
 })
+
 -- Notify the user
 Rayfield:Notify({
     Title = "ESP Loaded",
     Content = "The ESP system is now active.",
     Duration = 6.5,
-    Image = 4483362458, -- Replace with a relevant image ID
+    Image = 4483362458,
     Actions = {
         Ignore = {
             Name = "Okay",
@@ -312,5 +288,6 @@ Rayfield:Notify({
         },
     },
 })
+
 -- Load the configuration if saved
 Rayfield:LoadConfiguration()
