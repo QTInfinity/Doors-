@@ -41,21 +41,21 @@ local GeneralTable = {
         Chests = {},
         Gold = {},
         Guiding = {},
-        Targets = {}, -- Renamed from Items
-        Items = {},   -- New Items ESP
+        Targets = {},
+        Items = {},
         Players = {},
         Hideables = {}
     },
     ESPNames = {
-        DoorsName = { "Door" },
+        DoorsName = { "Door" },  -- Reverted to the original Door model
         EntityName = { "RushMoving", "AmbushMoving", "BackdoorRush", "Eyes" },
-        ChestName = { "Chest", "Toolshed_Small" },
+        ChestName = { "Chest", "Toolshed_Small" },  -- Reverted Chest model
         GoldName = { "GoldPile" },
         GuidingName = { "GuidingLight" },
-        TargetsName = { "KeyObtain", "LeverForGate", "LiveHintBook" },  -- Renamed from Items
-        ItemsName = { "Crucifix" },  -- New Items ESP starts with Crucifix, more to be added
-        PlayersName = {},  -- Dynamic, handled per player
-        HideablesName = { "Closet", "Bed" }
+        TargetsName = { "KeyObtain", "LeverForGate", "LiveHintBook" },
+        ItemsName = { "Crucifix" },
+        PlayersName = {},
+        HideablesName = { "Closet", "Wardrobe", "Bed" }  -- Added Wardrobe/Closet for Hideables ESP
     }
 }
 
@@ -80,11 +80,6 @@ local function ClearESP(type)
     GeneralTable.ESPStorage[type] = {} -- Clear the table
 end
 
--- Advanced item condition function (from mspaint)
-local function IsValidItem(item)
-    return item:IsA("Model") and (item:GetAttribute("Pickup") or item:GetAttribute("PropType")) and not item:GetAttribute("FuseID")
-end
-
 -- General ESP management function
 local function ManageESPByType(type, nameTable, color, filterFunction)
     ClearESP(type)
@@ -92,7 +87,7 @@ local function ManageESPByType(type, nameTable, color, filterFunction)
     if currentRoom then
         for _, object in ipairs(currentRoom:GetDescendants()) do
             for _, name in ipairs(GeneralTable.ESPNames[nameTable]) do
-                -- If a filter function is provided (like for Items), use it
+                -- If a filter function is provided, use it
                 if object.Name == name and (not filterFunction or filterFunction(object)) then
                     GeneralTable.ESPStorage[type][object] = ApplyESP(object, color)
                 end
@@ -119,7 +114,7 @@ local function ManageEntityESP()
             end
         end
     end
-    -- Then check globally in the workspace (for entities like RushMoving or AmbushMoving)
+    -- Then check globally in the workspace (for entities like RushMoving)
     for _, object in ipairs(Workspace:GetDescendants()) do
         for _, name in ipairs(GeneralTable.ESPNames.EntityName) do
             if object.Name == name then
@@ -137,14 +132,14 @@ local function ManageGuidingESP()
     ManageESPByType("Guiding", "GuidingName", Color3.fromRGB(0, 255, 255))
 end
 
--- Renamed former "Items" to Targets
 local function ManageTargetsESP()
     ManageESPByType("Targets", "TargetsName", Color3.fromRGB(255, 0, 100))
 end
 
--- New Items ESP using the ItemCondition filter
 local function ManageItemsESP()
-    ManageESPByType("Items", "ItemsName", Color3.fromRGB(0, 255, 100), IsValidItem)
+    ManageESPByType("Items", "ItemsName", Color3.fromRGB(0, 255, 100), function(item)
+        return item:IsA("Model") and (item:GetAttribute("Pickup") or item:GetAttribute("PropType")) and not item:GetAttribute("FuseID")
+    end)
 end
 
 local function ManagePlayerESP()
@@ -169,8 +164,8 @@ local function OnRoomChange()
     ManageEntityESP()
     ManageGoldESP()
     ManageGuidingESP()
-    ManageTargetsESP()  -- Renamed from Items
-    ManageItemsESP()     -- New Items ESP
+    ManageTargetsESP()
+    ManageItemsESP()
     ManagePlayerESP()
     ManageHideablesESP()
 end
@@ -236,7 +231,7 @@ VisualsTab:CreateToggle({
 })
 
 VisualsTab:CreateToggle({
-    Name = "Targets ESP",  -- Renamed from Items
+    Name = "Targets ESP",
     CurrentValue = false,
     Flag = "TargetsESP",
     Callback = function(state)
@@ -249,7 +244,7 @@ VisualsTab:CreateToggle({
 })
 
 VisualsTab:CreateToggle({
-    Name = "Items ESP",  -- New Items ESP
+    Name = "Items ESP",
     CurrentValue = false,
     Flag = "ItemsESP",
     Callback = function(state)
@@ -287,7 +282,7 @@ VisualsTab:CreateToggle({
     end,
 })
 
--- Button to unload the script
+-- Button to unload the script (fixed the UI error)
 ConfigSection:CreateButton({
     Name = "Unload",
     Callback = function()
