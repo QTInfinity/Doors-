@@ -1,7 +1,7 @@
 -- Importing the Cerberus UI Library
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Jxereas/UI-Libraries/main/cerberus.lua"))()
 
--- Creating the main window
+-- Create the main window
 local window = Library.new("ESP Menu", true, 500, 400, "RightShift")
 
 -- Locking window within screen boundaries
@@ -11,16 +11,16 @@ window:LockScreenBoundaries(true)
 local visualsTab = window:Tab("Visuals")
 local configTab = window:Tab("Config")
 
--- Visuals Section for ESP toggles
+-- Sections for ESP Options and Configurations
 local visualsSection = visualsTab:Section("ESP Options")
+local configSection = configTab:Section("Config")
 
--- Default services and player setup
+-- Services and player setup
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 
 -- Centralized tables for connections and ESP objects
-local Connections = {}
 local ESPObjects = {
     Doors = {},
     Targets = {},
@@ -45,53 +45,52 @@ local function ClearESP(type)
             highlight:Destroy()
         end
     end
-    ESPObjects[type] = {} -- Clear the table
+    ESPObjects[type] = {}
 end
 
--- Function to manage door ESP
+-- Functions for managing ESP
 local function ManageDoorESP()
     ClearESP("Doors")
-    local currentRoomModel = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
-    if currentRoomModel then
-        for _, object in ipairs(currentRoomModel:GetChildren()) do
-            if object.Name == "Door" then
-                local door = object:FindFirstChild("Door")
-                if door then
-                    ESPObjects.Doors[object] = ApplyESP(door)
-                end
+    local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
+    if currentRoom then
+        for _, object in ipairs(currentRoom:GetChildren()) do
+            if object.Name == "Door" and object:FindFirstChild("Door") then
+                ESPObjects.Doors[object] = ApplyESP(object.Door)
             end
         end
     end
 end
 
--- Function to manage target ESP (e.g., KeyObtain, LeverForGate)
 local function ManageTargetESP()
     ClearESP("Targets")
-    local currentRoomModel = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
-    if currentRoomModel then
-        local assetsFolder = currentRoomModel:FindFirstChild("Assets")
+    local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
+    if currentRoom then
+        local assetsFolder = currentRoom:FindFirstChild("Assets")
         if assetsFolder then
             for _, object in ipairs(assetsFolder:GetChildren()) do
+                local color = nil
                 if object.Name == "KeyObtain" then
-                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0))
+                    color = Color3.fromRGB(255, 0, 0)
                 elseif object.Name == "LeverForGate" then
-                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 255, 0))
+                    color = Color3.fromRGB(255, 255, 0)
                 elseif object.Name == "LiveHintBook" then
-                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(0, 255, 255))
+                    color = Color3.fromRGB(0, 255, 255)
                 elseif object.Name == "LiveBreakerPolePickup" then
-                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(128, 0, 255))
+                    color = Color3.fromRGB(128, 0, 255)
+                end
+                if color then
+                    ESPObjects.Targets[object] = ApplyESP(object, color)
                 end
             end
         end
     end
 end
 
--- Function to manage chest ESP
 local function ManageChestESP()
     ClearESP("Chests")
-    local currentRoomModel = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
-    if currentRoomModel then
-        for _, chest in ipairs(currentRoomModel:GetDescendants()) do
+    local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
+    if currentRoom then
+        for _, chest in ipairs(currentRoom:GetDescendants()) do
             if chest:GetAttribute("Storage") == "ChestBox" or chest.Name == "Toolshed_Small" then
                 ESPObjects.Chests[chest] = ApplyESP(chest, Color3.fromRGB(0, 255, 100))
             end
@@ -99,30 +98,14 @@ local function ManageChestESP()
     end
 end
 
--- Event handler for room change, instant application of ESP
-local function OnRoomChange()
-    ManageDoorESP()
-    ManageTargetESP()
-    ManageChestESP()
-end
-
--- Detect room changes and apply ESP instantly without delay
-local function MonitorRoomChanges()
-    OnRoomChange()
-    local roomChangedConnection = LocalPlayer:GetAttributeChangedSignal("CurrentRoom"):Connect(OnRoomChange)
-    table.insert(Connections, roomChangedConnection)
-end
-
-MonitorRoomChanges()
-
--- Adding toggles for Door ESP, Target ESP, and Chest ESP
+-- Handling ESP toggles
 visualsSection:Toggle("Door ESP", function(state)
     if state then
         ManageDoorESP()
     else
         ClearESP("Doors")
     end
-end):Set(false) -- Default to off
+end):Set(false)
 
 visualsSection:Toggle("Target ESP", function(state)
     if state then
@@ -130,7 +113,7 @@ visualsSection:Toggle("Target ESP", function(state)
     else
         ClearESP("Targets")
     end
-end):Set(false) -- Default to off
+end):Set(false)
 
 visualsSection:Toggle("Chest ESP", function(state)
     if state then
@@ -138,29 +121,15 @@ visualsSection:Toggle("Chest ESP", function(state)
     else
         ClearESP("Chests")
     end
-end):Set(false) -- Default to off
+end):Set(false)
 
--- Config Section for UI keybinding
-local configSection = configTab:Section("Config")
-
--- Setting up keybinding for toggling the UI visibility
+-- Keybind to toggle UI visibility
 configSection:Keybind("Toggle UI", function()
     window:Toggle()
-end, "RightShift") -- Default key to toggle UI
+end, "RightShift")
 
--- Additional UI Controls
+-- Button to unload the script
 configSection:Button("Unload", function()
     window:Destroy()
-    for _, conn in pairs(Connections) do
-        conn:Disconnect()
-    end
-    print("Unloaded ESP Menu")
+    print("ESP Menu Unloaded")
 end)
-
-configSection:TextBox("Textbox Example", function(txt)
-    print("Textbox content: " .. txt)
-end)
-
-configSection:Slider("Example Slider", function(val)
-    print("Slider value: " .. val)
-end, 100, 0) -- Slider with max value 100 and min value 0
