@@ -91,14 +91,15 @@ local function ManageTargetESP()
     end
 end
 
--- Event handler for room change, instant application of ESP
+-- Instant room change handling with no delay
 local function OnRoomChange()
     ManageDoorESP()
     ManageTargetESP()
 end
 
--- Detect room changes via attribute change instead of RenderStepped for efficiency
+-- Detect room changes and apply ESP immediately without delay
 local function MonitorRoomChanges()
+    OnRoomChange() -- Apply ESP immediately on script load
     local roomChangedConnection = LocalPlayer:GetAttributeChangedSignal("CurrentRoom"):Connect(OnRoomChange)
     table.insert(Connections, roomChangedConnection)
 end
@@ -137,16 +138,23 @@ ESPGroup:AddToggle('TargetESP', {
 local ConfigGroup = Tabs.Config:AddLeftGroupbox('Config')
 ConfigGroup:AddLabel('Keybind to Toggle UI')
 
--- Correctly setting up the keybind using AddKeyPicker based on wally's example
+-- Dynamic UI Toggle Fix
 ConfigGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
     Default = 'RightShift', -- Default key to toggle UI
     NoUI = true, -- Hide the keybind from the keybind menu
     Text = 'Toggle UI Keybind',
     Mode = 'Toggle', -- Modes: Always, Toggle, Hold
     Callback = function(Value)
-        Window:SetVisible(not Window.Visible)
+        -- Properly toggling UI visibility using ToggleKeybind reference
+        Library.ToggleKeybind = Value
+        Library:ToggleUI()
     end
 })
+
+-- Ensure the ToggleUI function behaves correctly
+Library.ToggleUI = function()
+    Window.Visible = not Window.Visible
+end
 
 -- Additional UI Settings (Themes, Saves)
 local MenuGroup = Tabs.Config:AddLeftGroupbox('UI Settings')
