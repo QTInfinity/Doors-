@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService") -- Added UserInputService
 
 -- Centralized tables for connections and ESP objects
 local Connections = {}
@@ -186,7 +187,7 @@ end
 
 -- Detect key press and toggle the UI dynamically
 RunService.RenderStepped:Connect(function()
-    if Library.ToggleKeybind and UserInputService:IsKeyDown(Library.ToggleKeybind) then
+    if Library.ToggleKeybind and UserInputService:IsKeyDown(Enum.KeyCode[Library.ToggleKeybind]) then
         Library:ToggleUI()
     end
 end)
