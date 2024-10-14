@@ -47,7 +47,7 @@ local GeneralTable = {
         Hideables = {}
     },
     ESPNames = {
-        DoorsName = { "Door.Door" },  -- Updated to the correct model path for Door
+        DoorsName = { "Door.Door" },  -- Correct Door model
         EntityName = { "RushMoving", "AmbushMoving", "BackdoorRush", "Eyes" },
         ChestName = { "Chest", "Toolshed_Small", "ChestBoxLocked" },
         GoldName = { "GoldPile" },
@@ -80,25 +80,43 @@ local function ClearESP(type)
     GeneralTable.ESPStorage[type] = {} -- Clear the table
 end
 
--- General ESP management function
-local function ManageESPByType(type, nameTable, color, filterFunction)
-    ClearESP(type)
+-- Door ESP function (Using the logic you provided)
+local function ManageDoorESP()
+    ClearESP("Doors")
     local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
     if currentRoom then
-        for _, object in ipairs(currentRoom:GetDescendants()) do
-            for _, name in ipairs(GeneralTable.ESPNames[nameTable]) do
-                -- If a filter function is provided, use it
-                if object.Name == name and (not filterFunction or filterFunction(object)) then
-                    GeneralTable.ESPStorage[type][object] = ApplyESP(object, color)
+        local door = currentRoom:WaitForChild("Door", 5)
+        if door then
+            local doorNumber = tonumber(currentRoom.Name) + 1
+            local opened = door:GetAttribute("Opened")
+            local locked = currentRoom:GetAttribute("RequiresKey")
+            local doorState = if opened then "[Opened]" elseif locked then "[Locked]" else ""
+            local doorIdx = "Door_"..tostring(currentRoom.Name)
+    
+            local doorEsp = ApplyESP(door:WaitForChild("Door"), Color3.fromRGB(0, 255, 0))
+            GeneralTable.ESPStorage.Doors[door] = doorEsp
+
+            -- Update ESP text when door state changes
+            door:GetAttributeChangedSignal("Opened"):Connect(function()
+                if doorEsp then
+                    doorEsp:SetText(string.format("Door %s [Opened]", doorNumber))
                 end
-            end
+            end)
         end
     end
 end
 
--- Specific ESP managers
-local function ManageDoorESP()
-    ManageESPByType("Doors", "DoorsName", Color3.fromRGB(0, 255, 0))
+-- Function for Chest ESP (includes locked chests)
+local function ManageChestESP()
+    ClearESP("Chests")
+    local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
+    if currentRoom then
+        for _, chest in ipairs(currentRoom:GetDescendants()) do
+            if chest:GetAttribute("Storage") == "ChestBox" or chest.Name == "Toolshed_Small" or chest.Name == "ChestBoxLocked" then
+                GeneralTable.ESPStorage.Chests[chest] = ApplyESP(chest, Color3.fromRGB(0, 255, 100))
+            end
+        end
+    end
 end
 
 local function ManageEntityESP()
@@ -119,19 +137,6 @@ local function ManageEntityESP()
         for _, name in ipairs(GeneralTable.ESPNames.EntityName) do
             if object.Name == name then
                 GeneralTable.ESPStorage.Entity[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0))
-            end
-        end
-    end
-end
-
--- Function for Chest ESP (includes locked chests)
-local function ManageChestESP()
-    ClearESP("Chests")
-    local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
-    if currentRoom then
-        for _, chest in ipairs(currentRoom:GetDescendants()) do
-            if chest:GetAttribute("Storage") == "ChestBox" or chest.Name == "Toolshed_Small" or chest.Name == "ChestBoxLocked" then
-                GeneralTable.ESPStorage.Chests[chest] = ApplyESP(chest, Color3.fromRGB(0, 255, 100))
             end
         end
     end
@@ -171,23 +176,6 @@ local function ManageHideablesESP()
     ManageESPByType("Hideables", "HideablesName", Color3.fromRGB(255, 255, 255))
 end
 
--- Function to preload the next room's ESP to make loading quicker
-local function PreloadNextRoomESP()
-    local currentRoomIndex = LocalPlayer:GetAttribute("CurrentRoom")
-    local nextRoomIndex = tostring(tonumber(currentRoomIndex) + 1)
-    local nextRoom = Workspace.CurrentRooms[nextRoomIndex]
-    
-    if nextRoom then
-        -- Preload ESP for the next room
-        for _, object in ipairs(nextRoom:GetDescendants()) do
-            -- Preload for Doors, Entities, etc.
-            ManageESPByType("Doors", "DoorsName", Color3.fromRGB(0, 255, 0))
-            ManageESPByType("Entity", "EntityName", Color3.fromRGB(255, 0, 0))
-            ManageESPByType("Chests", "ChestName", Color3.fromRGB(0, 255, 100))
-        end
-    end
-end
-
 -- Event handler for room change, instant application of ESP
 local function OnRoomChange()
     ManageDoorESP()
@@ -199,7 +187,6 @@ local function OnRoomChange()
     ManageItemsESP()
     ManagePlayerESP()
     ManageHideablesESP()
-    PreloadNextRoomESP()  -- Preload the next room's ESP
 end
 
 -- Detect room changes and apply ESP instantly without delay
