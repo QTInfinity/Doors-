@@ -9,7 +9,7 @@ local Window = Rayfield:CreateWindow({
     LoadingSubtitle = "by Sirius",
     ConfigurationSaving = {
         Enabled = true,
-        FolderName = "MyGameESP", -- Custom folder for configuration
+        FolderName = "MyGameESP",
         FileName = "ESPConfig"
     },
     Discord = {
@@ -21,7 +21,7 @@ local Window = Rayfield:CreateWindow({
 })
 
 -- Creating tabs for UI
-local VisualsTab = Window:CreateTab("Visuals", 4483362458) -- Use any relevant image ID
+local VisualsTab = Window:CreateTab("Visuals", 4483362458)
 local ConfigTab = Window:CreateTab("Config", 4483362458)
 
 -- Creating sections for ESP Options and Configurations
@@ -36,13 +36,13 @@ local Workspace = game:GetService("Workspace")
 -- Centralized tables for ESP objects
 local ESPObjects = {
     Doors = {},
-    Entity = {}, -- Merged Entity and SideEntity here
+    Entity = {},
     Chests = {},
     Gold = {},
     Guiding = {},
-    Items = {}, -- Merged Item and DroppedItem here
-    Players = {}, -- Renamed Player to Players
-    Hideables = {}, -- Renamed HidingSpot to Hideables
+    Items = {},
+    Players = {},
+    Hideables = {}
 }
 
 -- Function to apply general ESP (used for doors, entity, etc.)
@@ -56,7 +56,7 @@ local function ApplyESP(object, color)
     return highlight
 end
 
--- Function to clear ESP for a specific type (Doors, Entity, etc.)
+-- Function to clear ESP for a specific type
 local function ClearESP(type)
     for object, highlight in pairs(ESPObjects[type]) do
         if highlight then
@@ -81,13 +81,19 @@ end
 
 local function ManageEntityESP()
     ClearESP("Entity")
+    -- First check in the player's current room
     local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
     if currentRoom then
         for _, object in ipairs(currentRoom:GetChildren()) do
-            -- Combine checks for both Entity and SideEntity here
             if object.Name == "Entity" or object.Name == "SideEntity" then
                 ESPObjects.Entity[object] = ApplyESP(object, Color3.fromRGB(255, 100, 0))
             end
+        end
+    end
+    -- Then check globally in the workspace (for entities like Rush)
+    for _, object in ipairs(Workspace:GetChildren()) do
+        if object.Name == "Rush" then
+            ESPObjects.Entity[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0)) -- Custom color for Rush
         end
     end
 end
@@ -121,8 +127,8 @@ local function ManageItemsESP()
     local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
     if currentRoom then
         for _, item in ipairs(currentRoom:GetDescendants()) do
-            -- Merged Item and DroppedItem checks here
-            if item.Name == "Item" or item.Name == "DroppedItem" then
+            -- Adjusted for "Item" and "DroppedItem" from mspaint
+            if item.Name == "KeyObtain" or item.Name == "LeverForGate" or item.Name == "LiveHintBook" then
                 ESPObjects.Items[item] = ApplyESP(item, Color3.fromRGB(0, 255, 100))
             end
         end
@@ -146,7 +152,7 @@ local function ManageHideablesESP()
     local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
     if currentRoom then
         for _, hidingSpot in ipairs(currentRoom:GetChildren()) do
-            if hidingSpot:GetAttribute("HidingSpot") then
+            if hidingSpot:GetAttribute("LoadModule") == "Closet" then
                 ESPObjects.Hideables[hidingSpot] = ApplyESP(hidingSpot, Color3.fromRGB(255, 255, 255))
             end
         end
@@ -263,7 +269,6 @@ VisualsTab:CreateToggle({
     end,
 })
 
--- Remove Keybind Section (as requested)
 -- Button to unload the script
 ConfigSection:CreateButton({
     Name = "Unload",
