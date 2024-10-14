@@ -34,15 +34,29 @@ local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 
 -- Centralized tables for ESP objects
-local ESPObjects = {
-    Doors = {},
-    Entity = {},
-    Chests = {},
-    Gold = {},
-    Guiding = {},
-    Items = {},
-    Players = {},
-    Hideables = {}
+local GeneralTable = {
+    ESPStorage = {
+        Doors = {},
+        Entity = {},
+        Chests = {},
+        Gold = {},
+        Guiding = {},
+        Targets = {}, -- Renamed from Items
+        Items = {},   -- New Items ESP
+        Players = {},
+        Hideables = {}
+    },
+    ESPNames = {
+        DoorsName = { "Door" },
+        EntityName = { "RushMoving", "AmbushMoving", "BackdoorRush", "Eyes" },
+        ChestName = { "Chest", "Toolshed_Small" },
+        GoldName = { "GoldPile" },
+        GuidingName = { "GuidingLight" },
+        TargetsName = { "KeyObtain", "LeverForGate", "LiveHintBook" },  -- Renamed from Items
+        ItemsName = { "Crucifix" },  -- New Items ESP starts with Crucifix, more to be added
+        PlayersName = {},  -- Dynamic, handled per player
+        HideablesName = { "Closet", "Bed" }
+    }
 }
 
 -- Function to apply general ESP (used for doors, entity, etc.)
@@ -58,25 +72,38 @@ end
 
 -- Function to clear ESP for a specific type
 local function ClearESP(type)
-    for object, highlight in pairs(ESPObjects[type]) do
+    for object, highlight in pairs(GeneralTable.ESPStorage[type]) do
         if highlight then
             highlight:Destroy()
         end
     end
-    ESPObjects[type] = {} -- Clear the table
+    GeneralTable.ESPStorage[type] = {} -- Clear the table
 end
 
--- Functions for managing ESP for each object type
-local function ManageDoorESP()
-    ClearESP("Doors")
+-- Advanced item condition function (from mspaint)
+local function IsValidItem(item)
+    return item:IsA("Model") and (item:GetAttribute("Pickup") or item:GetAttribute("PropType")) and not item:GetAttribute("FuseID")
+end
+
+-- General ESP management function
+local function ManageESPByType(type, nameTable, color, filterFunction)
+    ClearESP(type)
     local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
     if currentRoom then
-        for _, object in ipairs(currentRoom:GetChildren()) do
-            if object.Name == "Door" and object:FindFirstChild("Door") then
-                ESPObjects.Doors[object] = ApplyESP(object.Door)
+        for _, object in ipairs(currentRoom:GetDescendants()) do
+            for _, name in ipairs(GeneralTable.ESPNames[nameTable]) do
+                -- If a filter function is provided (like for Items), use it
+                if object.Name == name and (not filterFunction or filterFunction(object)) then
+                    GeneralTable.ESPStorage[type][object] = ApplyESP(object, color)
+                end
             end
         end
     end
+end
+
+-- Specific ESP managers
+local function ManageDoorESP()
+    ManageESPByType("Doors", "DoorsName", Color3.fromRGB(0, 255, 0))
 end
 
 local function ManageEntityESP()
@@ -84,55 +111,40 @@ local function ManageEntityESP()
     -- First check in the player's current room
     local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
     if currentRoom then
-        for _, object in ipairs(currentRoom:GetChildren()) do
-            if object.Name == "Entity" or object.Name == "SideEntity" then
-                ESPObjects.Entity[object] = ApplyESP(object, Color3.fromRGB(255, 100, 0))
+        for _, object in ipairs(currentRoom:GetDescendants()) do
+            for _, name in ipairs(GeneralTable.ESPNames.EntityName) do
+                if object.Name == name then
+                    GeneralTable.ESPStorage.Entity[object] = ApplyESP(object, Color3.fromRGB(255, 100, 0))
+                end
             end
         end
     end
-    -- Then check globally in the workspace (for entities like Rush)
-    for _, object in ipairs(Workspace:GetChildren()) do
-        if object.Name == "Rush" then
-            ESPObjects.Entity[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0)) -- Custom color for Rush
+    -- Then check globally in the workspace (for entities like RushMoving or AmbushMoving)
+    for _, object in ipairs(Workspace:GetDescendants()) do
+        for _, name in ipairs(GeneralTable.ESPNames.EntityName) do
+            if object.Name == name then
+                GeneralTable.ESPStorage.Entity[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0))
+            end
         end
     end
 end
 
 local function ManageGoldESP()
-    ClearESP("Gold")
-    local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
-    if currentRoom then
-        for _, gold in ipairs(currentRoom:GetDescendants()) do
-            if gold.Name == "GoldPile" then
-                ESPObjects.Gold[gold] = ApplyESP(gold, Color3.fromRGB(255, 215, 0))
-            end
-        end
-    end
+    ManageESPByType("Gold", "GoldName", Color3.fromRGB(255, 215, 0))
 end
 
 local function ManageGuidingESP()
-    ClearESP("Guiding")
-    local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
-    if currentRoom then
-        for _, guiding in ipairs(currentRoom:GetDescendants()) do
-            if guiding.Name == "GuidingLight" then
-                ESPObjects.Guiding[guiding] = ApplyESP(guiding, Color3.fromRGB(0, 255, 255))
-            end
-        end
-    end
+    ManageESPByType("Guiding", "GuidingName", Color3.fromRGB(0, 255, 255))
 end
 
+-- Renamed former "Items" to Targets
+local function ManageTargetsESP()
+    ManageESPByType("Targets", "TargetsName", Color3.fromRGB(255, 0, 100))
+end
+
+-- New Items ESP using the ItemCondition filter
 local function ManageItemsESP()
-    ClearESP("Items")
-    local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
-    if currentRoom then
-        for _, item in ipairs(currentRoom:GetDescendants()) do
-            -- Adjusted for "Item" and "DroppedItem" from mspaint
-            if item.Name == "KeyObtain" or item.Name == "LeverForGate" or item.Name == "LiveHintBook" then
-                ESPObjects.Items[item] = ApplyESP(item, Color3.fromRGB(0, 255, 100))
-            end
-        end
-    end
+    ManageESPByType("Items", "ItemsName", Color3.fromRGB(0, 255, 100), IsValidItem)
 end
 
 local function ManagePlayerESP()
@@ -141,22 +153,14 @@ local function ManagePlayerESP()
         if player ~= LocalPlayer then
             local character = player.Character
             if character then
-                ESPObjects.Players[player] = ApplyESP(character, Color3.fromRGB(0, 255, 255))
+                GeneralTable.ESPStorage.Players[player] = ApplyESP(character, Color3.fromRGB(0, 255, 255))
             end
         end
     end
 end
 
 local function ManageHideablesESP()
-    ClearESP("Hideables")
-    local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
-    if currentRoom then
-        for _, hidingSpot in ipairs(currentRoom:GetChildren()) do
-            if hidingSpot:GetAttribute("LoadModule") == "Closet" then
-                ESPObjects.Hideables[hidingSpot] = ApplyESP(hidingSpot, Color3.fromRGB(255, 255, 255))
-            end
-        end
-    end
+    ManageESPByType("Hideables", "HideablesName", Color3.fromRGB(255, 255, 255))
 end
 
 -- Event handler for room change, instant application of ESP
@@ -165,7 +169,8 @@ local function OnRoomChange()
     ManageEntityESP()
     ManageGoldESP()
     ManageGuidingESP()
-    ManageItemsESP()
+    ManageTargetsESP()  -- Renamed from Items
+    ManageItemsESP()     -- New Items ESP
     ManagePlayerESP()
     ManageHideablesESP()
 end
@@ -231,7 +236,20 @@ VisualsTab:CreateToggle({
 })
 
 VisualsTab:CreateToggle({
-    Name = "Items ESP",
+    Name = "Targets ESP",  -- Renamed from Items
+    CurrentValue = false,
+    Flag = "TargetsESP",
+    Callback = function(state)
+        if state then
+            ManageTargetsESP()
+        else
+            ClearESP("Targets")
+        end
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Name = "Items ESP",  -- New Items ESP
     CurrentValue = false,
     Flag = "ItemsESP",
     Callback = function(state)
