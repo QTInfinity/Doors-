@@ -1,26 +1,41 @@
--- Importing the Cerberus UI Library
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Jxereas/UI-Libraries/main/cerberus.lua"))()
+-- Importing the Rayfield UI Library
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- Create the main window
-local window = Library.new("ESP Menu", true, 500, 400, "RightShift")
+-- Optional: Enabling secure mode for detection reduction (uncomment if needed)
+-- getgenv().SecureMode = true
 
--- Locking window within screen boundaries
-window:LockScreenBoundaries(true)
+-- Creating the main window with configuration saving enabled
+local Window = Rayfield:CreateWindow({
+    Name = "ESP Menu",
+    LoadingTitle = "Rayfield Interface Suite",
+    LoadingSubtitle = "by Sirius",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "MyGameESP", -- Custom folder for configuration
+        FileName = "ESPConfig"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "noinvitelink",
+        RememberJoins = true
+    },
+    KeySystem = false,
+})
 
 -- Creating tabs for UI
-local visualsTab = window:Tab("Visuals")
-local configTab = window:Tab("Config")
+local VisualsTab = Window:CreateTab("Visuals", 4483362458) -- Use any relevant image ID
+local ConfigTab = Window:CreateTab("Config", 4483362458)
 
--- Sections for ESP Options and Configurations
-local visualsSection = visualsTab:Section("ESP Options")
-local configSection = configTab:Section("Config")
+-- Creating sections for ESP Options and Configurations
+local ESPSection = VisualsTab:CreateSection("ESP Options")
+local ConfigSection = ConfigTab:CreateSection("Config")
 
--- Services and player setup
+-- Default services and player setup
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 
--- Centralized tables for connections and ESP objects
+-- Centralized tables for ESP objects
 local ESPObjects = {
     Doors = {},
     Targets = {},
@@ -45,7 +60,7 @@ local function ClearESP(type)
             highlight:Destroy()
         end
     end
-    ESPObjects[type] = {}
+    ESPObjects[type] = {} -- Clear the table
 end
 
 -- Functions for managing ESP
@@ -98,38 +113,96 @@ local function ManageChestESP()
     end
 end
 
--- Handling ESP toggles
-visualsSection:Toggle("Door ESP", function(state)
-    if state then
-        ManageDoorESP()
-    else
-        ClearESP("Doors")
-    end
-end):Set(false)
+-- Event handler for room change, instant application of ESP
+local function OnRoomChange()
+    ManageDoorESP()
+    ManageTargetESP()
+    ManageChestESP()
+end
 
-visualsSection:Toggle("Target ESP", function(state)
-    if state then
-        ManageTargetESP()
-    else
-        ClearESP("Targets")
-    end
-end):Set(false)
+-- Detect room changes and apply ESP instantly without delay
+local function MonitorRoomChanges()
+    OnRoomChange()
+    local roomChangedConnection = LocalPlayer:GetAttributeChangedSignal("CurrentRoom"):Connect(OnRoomChange)
+    table.insert(ESPObjects, roomChangedConnection)
+end
 
-visualsSection:Toggle("Chest ESP", function(state)
-    if state then
-        ManageChestESP()
-    else
-        ClearESP("Chests")
-    end
-end):Set(false)
+MonitorRoomChanges()
+
+-- Adding toggles for Door ESP, Target ESP, and Chest ESP
+local DoorToggle = VisualsTab:CreateToggle({
+    Name = "Door ESP",
+    CurrentValue = false,
+    Flag = "DoorESP", -- Unique identifier for saving
+    Callback = function(state)
+        if state then
+            ManageDoorESP()
+        else
+            ClearESP("Doors")
+        end
+    end,
+})
+
+local TargetToggle = VisualsTab:CreateToggle({
+    Name = "Target ESP",
+    CurrentValue = false,
+    Flag = "TargetESP",
+    Callback = function(state)
+        if state then
+            ManageTargetESP()
+        else
+            ClearESP("Targets")
+        end
+    end,
+})
+
+local ChestToggle = VisualsTab:CreateToggle({
+    Name = "Chest ESP",
+    CurrentValue = false,
+    Flag = "ChestESP",
+    Callback = function(state)
+        if state then
+            ManageChestESP()
+        else
+            ClearESP("Chests")
+        end
+    end,
+})
 
 -- Keybind to toggle UI visibility
-configSection:Keybind("Toggle UI", function()
-    window:Toggle()
-end, "RightShift")
+ConfigSection:CreateKeybind({
+    Name = "Toggle UI",
+    CurrentKeybind = "RightShift",
+    Flag = "ToggleUI",
+    Callback = function()
+        Rayfield:Destroy()
+    end,
+})
 
 -- Button to unload the script
-configSection:Button("Unload", function()
-    window:Destroy()
-    print("ESP Menu Unloaded")
-end)
+ConfigSection:CreateButton({
+    Name = "Unload",
+    Callback = function()
+        Rayfield:Destroy()
+        print("ESP Menu Unloaded")
+    end,
+})
+
+-- Notify the user
+Rayfield:Notify({
+    Title = "ESP Loaded",
+    Content = "The ESP system is now active.",
+    Duration = 6.5,
+    Image = 4483362458, -- Replace with a relevant image ID
+    Actions = {
+        Ignore = {
+            Name = "Okay",
+            Callback = function()
+                print("The user tapped Okay!")
+            end
+        },
+    },
+})
+
+-- Load the configuration if saved
+Rayfield:LoadConfiguration()
