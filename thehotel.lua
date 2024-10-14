@@ -84,22 +84,19 @@ local function ManageDoorESP()
     end
 end
 
--- Function to manage target ESP (for KeyObtain, LeverForGate, LiveHintBook, etc.)
+-- Function to manage Key ESP (only highlights KeyObtain for now)
 local function ManageTargetESP()
     ClearESP("Targets") -- Ensure previous ESP is cleared
     local currentRoomModel = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
+    
     if currentRoomModel then
-        for _, object in ipairs(currentRoomModel:GetChildren()) do
-            if object.Name == "KeyObtain" then
-                ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0), "Key")
-            elseif object.Name == "ElectricalKeyObtain" then
-                ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0), "Electrical Key")
-            elseif object.Name == "LeverForGate" then
-                ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0), "Gate Lever")
-            elseif object.Name == "LiveHintBook" then
-                ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0), "Hint Book")
-            elseif object.Name == "LiveBreakerPolePickup" then
-                ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0), "Breaker")
+        local assetsFolder = currentRoomModel:FindFirstChild("Assets")
+        if assetsFolder then
+            for _, object in ipairs(assetsFolder:GetChildren()) do
+                -- Check for KeyObtain inside the Assets folder
+                if object:FindFirstChild("KeyObtain") then
+                    ESPObjects.Targets[object.KeyObtain] = ApplyESP(object.KeyObtain, Color3.fromRGB(255, 0, 0), "Key")
+                end
             end
         end
     end
@@ -133,11 +130,11 @@ ESPGroup:AddToggle('DoorESP', {
     end
 })
 
--- UI Control for Target ESP Toggle
+-- UI Control for Target ESP Toggle (KeyObtain only)
 ESPGroup:AddToggle('TargetESP', {
-    Text = 'Enable Target ESP',
+    Text = 'Enable Key ESP',
     Default = true,
-    Tooltip = 'Toggles Target ESP on or off',
+    Tooltip = 'Toggles Key ESP on or off',
     Callback = function(enabled)
         if enabled then
             ManageTargetESP()
