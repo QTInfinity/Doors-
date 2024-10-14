@@ -1,23 +1,33 @@
+-- Importing necessary libraries
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
+-- Creating the main window
 local Window = Library:CreateWindow({
     Title = 'ESP Menu',
     Center = true,
     AutoShow = true,
-    Draggable = true
+    TabPadding = 8,
+    MenuFadeTime = 0.2
 })
 
+-- Creating tabs for UI
 local Tabs = {
     Visuals = Window:AddTab('Visuals'),
     Config = Window:AddTab('Config'),
+    ['UI Settings'] = Window:AddTab('UI Settings'),
 }
 
+-- Group for ESP settings
 local ESPGroup = Tabs.Visuals:AddLeftGroupbox('ESP Options')
 
--- Service(s)
+-- Group for Config settings and UI keybinding
+local ConfigGroup = Tabs.Config:AddLeftGroupbox('Config')
+local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
+
+-- Default services and player setup
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -70,7 +80,7 @@ local function ManageDoorESP()
     end
 end
 
--- Function to manage target ESP
+-- Function to manage target ESP (e.g., KeyObtain, LeverForGate)
 local function ManageTargetESP()
     ClearESP("Targets")
     local currentRoomModel = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
@@ -163,39 +173,38 @@ ESPGroup:AddToggle('ChestESP', {
     end
 })
 
--- Config Tab for Keybinding to toggle the UI itself
-local ConfigGroup = Tabs.Config:AddLeftGroupbox('Config')
-ConfigGroup:AddLabel('Keybind to Toggle UI')
-
--- Dynamic UI Toggle Fix
-ConfigGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
-    Default = 'RightShift',
-    NoUI = true,
-    Text = 'Toggle UI Keybind',
-    Mode = 'Toggle',
-    Callback = function(NewKey)
-        -- Update the keybind dynamically, ensure it's a string
-        if typeof(NewKey) == 'string' then
-            Library.ToggleKeybind = NewKey
-        else
-            Library.ToggleKeybind = tostring(NewKey)
-        end
-    end
+-- Setting up keybinding for toggling the UI visibility
+MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
+    Default = 'RightShift', -- Default key to toggle UI
+    NoUI = true, -- Hide the keybind from the keybind menu
+    Text = 'Toggle UI Keybind'
 })
 
--- Toggle the UI on key press
+-- Store the keybind value in a variable for easier access
+local menuToggleKey = 'RightShift' -- Default value
+Options.MenuKeybind:OnChanged(function(value)
+    menuToggleKey = value
+end)
+
+-- Function to toggle the visibility of the UI
+local function ToggleUIVisibility()
+    Window:SetVisible(not Window.Visible)
+end
+
+-- Listen for input to toggle the UI
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    local key = Library.ToggleKeybind
-    if key and Enum.KeyCode[key] and input.KeyCode == Enum.KeyCode[key] and not gameProcessed then
-        Library:ToggleUI()
+    if not gameProcessed and input.KeyCode == Enum.KeyCode[menuToggleKey] then
+        ToggleUIVisibility()
     end
 end)
 
--- Additional UI Settings (Themes, Saves)
-local MenuGroup = Tabs.Config:AddLeftGroupbox('UI Settings')
-MenuGroup:AddButton('Unload', function() Library:Unload() end)
-
+-- Addons for saving and managing themes
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
-SaveManager:BuildConfigSection(Tabs.Config)
-ThemeManager:ApplyToTab(Tabs.Config)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({ 'MenuKeybind' })
+ThemeManager:SetFolder('MyScriptHub')
+SaveManager:SetFolder('MyScriptHub/specific-game')
+SaveManager:BuildConfigSection(Tabs['UI Settings'])
+ThemeManager:ApplyToTab(Tabs['UI Settings'])
+SaveManager:LoadAutoloadConfig()
