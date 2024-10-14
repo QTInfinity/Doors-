@@ -124,19 +124,18 @@ ESPGroup:AddToggle('TargetESP', {
     end
 })
 
--- Config Tab for Keybinding to toggle the UI
+-- Config Tab for Keybinding to toggle the UI itself
 local ConfigGroup = Tabs.Config:AddLeftGroupbox('Config')
 ConfigGroup:AddLabel('Keybind to Toggle UI')
 
--- Correctly setting up the keybind using AddKeyPicker
+-- Correctly setting up the keybind using AddKeyPicker based on mspaint's approach
 ConfigGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
-    Default = 'End',
-    NoUI = true,
+    Default = 'RightShift', -- Default key to toggle UI
+    NoUI = true, -- Hide the keybind from the keybind menu
     Text = 'Toggle UI Keybind',
-    Mode = 'Toggle',
+    Mode = 'Toggle', -- Modes: Always, Toggle, Hold
     Callback = function()
-        Library:SetWatermarkVisibility(not Library.KeybindFrame.Visible)
-        Library.KeybindFrame.Visible = not Library.KeybindFrame.Visible
+        Library.KeybindFrame.Visible = not Library.KeybindFrame.Visible -- Properly toggle the UI frame
     end
 })
 
