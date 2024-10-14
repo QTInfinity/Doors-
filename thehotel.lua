@@ -24,16 +24,13 @@ local Tabs = {
 local ESPGroup = Tabs.Visuals:AddLeftGroupbox('ESP Options')
 
 -- Group for Config settings and UI keybinding
-local ConfigGroup = Tabs.Config:AddLeftGroupbox('Config')
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 
 -- Default services and player setup
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
 
 -- Centralized tables for connections and ESP objects
 local Connections = {}
@@ -181,9 +178,9 @@ MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
 })
 
 -- Store the keybind value in a variable for easier access
-local menuToggleKey = 'RightShift' -- Default value
+local menuToggleKey = Enum.KeyCode.RightShift -- Default value
 Options.MenuKeybind:OnChanged(function(value)
-    menuToggleKey = value
+    menuToggleKey = Enum.KeyCode[value] or Enum.KeyCode.RightShift
 end)
 
 -- Function to toggle the visibility of the UI
@@ -193,7 +190,7 @@ end
 
 -- Listen for input to toggle the UI
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode[menuToggleKey] then
+    if not gameProcessed and input.KeyCode == menuToggleKey then
         ToggleUIVisibility()
     end
 end)
