@@ -75,10 +75,10 @@ function TargetESP()
     if not currentRoomModel then return end
 
     -- Iterate through objects in the current room to find target objects
-    for _, child in ipairs(currentRoomModel:GetChildren()) do
-        if (child.Name == "KeyObtain" or child.Name == "LeverForGate" or child.Name == "LiveHintBook") and not MainTable.ESP.Targets[child] then
-            local highlight = ESPHighlight(child, Color3.fromRGB(255, 0, 0)) -- Red color for target objects
-            MainTable.ESP.Targets[child] = highlight -- Store the highlight in the table
+    for _, object in ipairs(currentRoomModel:GetChildren()) do
+        if (object.Name == "KeyObtain" or object.Name == "LeverForGate" or object.Name == "LiveHintBook") and not MainTable.ESP.Targets[object] then
+            local highlight = ESPHighlight(object, Color3.fromRGB(255, 0, 0)) -- Red color for target objects
+            MainTable.ESP.Targets[object] = highlight -- Store the highlight in the table
         end
     end
 end
