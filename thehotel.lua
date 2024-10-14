@@ -1,20 +1,3 @@
--- Service(s)
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-local UserInputService = game:GetService("UserInputService") -- Added UserInputService
-
--- Centralized tables for connections and ESP objects
-local Connections = {}
-local ESPObjects = {
-    Doors = {},
-    Targets = {}, -- Target ESP storage
-    Chests = {}, -- Chest ESP storage
-}
-
--- UI Library setup
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
@@ -33,6 +16,22 @@ local Tabs = {
 }
 
 local ESPGroup = Tabs.Visuals:AddLeftGroupbox('ESP Options')
+
+-- Service(s)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+
+-- Centralized tables for connections and ESP objects
+local Connections = {}
+local ESPObjects = {
+    Doors = {},
+    Targets = {},
+    Chests = {},
+}
 
 -- Function to apply general ESP (used for doors, targets, and chests)
 local function ApplyESP(object, color)
@@ -57,36 +56,36 @@ end
 
 -- Function to manage door ESP
 local function ManageDoorESP()
-    ClearESP("Doors") -- Ensure previous ESP is cleared
+    ClearESP("Doors")
     local currentRoomModel = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
     if currentRoomModel then
         for _, object in ipairs(currentRoomModel:GetChildren()) do
             if object.Name == "Door" then
                 local door = object:FindFirstChild("Door")
                 if door then
-                    ESPObjects.Doors[object] = ApplyESP(door) -- Store the highlight
+                    ESPObjects.Doors[object] = ApplyESP(door)
                 end
             end
         end
     end
 end
 
--- Function to manage target ESP (for KeyObtain, LeverForGate, LiveHintBook, and others)
+-- Function to manage target ESP
 local function ManageTargetESP()
-    ClearESP("Targets") -- Ensure previous ESP is cleared
+    ClearESP("Targets")
     local currentRoomModel = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
     if currentRoomModel then
         local assetsFolder = currentRoomModel:FindFirstChild("Assets")
         if assetsFolder then
             for _, object in ipairs(assetsFolder:GetChildren()) do
                 if object.Name == "KeyObtain" then
-                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0)) -- Red highlight for KeyObtain
+                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 0, 0))
                 elseif object.Name == "LeverForGate" then
-                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 255, 0)) -- Yellow highlight for Gate Lever
+                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(255, 255, 0))
                 elseif object.Name == "LiveHintBook" then
-                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(0, 255, 255)) -- Cyan highlight for Hint Book
+                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(0, 255, 255))
                 elseif object.Name == "LiveBreakerPolePickup" then
-                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(128, 0, 255)) -- Purple highlight for Breaker
+                    ESPObjects.Targets[object] = ApplyESP(object, Color3.fromRGB(128, 0, 255))
                 end
             end
         end
@@ -95,12 +94,12 @@ end
 
 -- Function to manage chest ESP
 local function ManageChestESP()
-    ClearESP("Chests") -- Ensure previous ESP is cleared
+    ClearESP("Chests")
     local currentRoomModel = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
     if currentRoomModel then
         for _, chest in ipairs(currentRoomModel:GetDescendants()) do
             if chest:GetAttribute("Storage") == "ChestBox" or chest.Name == "Toolshed_Small" then
-                ESPObjects.Chests[chest] = ApplyESP(chest, Color3.fromRGB(0, 255, 100)) -- Greenish highlight for Chests
+                ESPObjects.Chests[chest] = ApplyESP(chest, Color3.fromRGB(0, 255, 100))
             end
         end
     end
@@ -115,7 +114,7 @@ end
 
 -- Detect room changes and apply ESP instantly without delay
 local function MonitorRoomChanges()
-    OnRoomChange() -- Apply ESP immediately on script load
+    OnRoomChange()
     local roomChangedConnection = LocalPlayer:GetAttributeChangedSignal("CurrentRoom"):Connect(OnRoomChange)
     table.insert(Connections, roomChangedConnection)
 end
@@ -170,24 +169,19 @@ ConfigGroup:AddLabel('Keybind to Toggle UI')
 
 -- Dynamic UI Toggle Fix
 ConfigGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
-    Default = 'RightShift', -- Default key to toggle UI
-    NoUI = true, -- Hide the keybind from the keybind menu
+    Default = 'RightShift',
+    NoUI = true,
     Text = 'Toggle UI Keybind',
-    Mode = 'Toggle', -- Modes: Always, Toggle, Hold
-    Callback = function(Value)
-        -- Update the keybind dynamically and toggle UI visibility
-        Library.ToggleKeybind = Value
+    Mode = 'Toggle',
+    Callback = function(NewKey)
+        -- Update the keybind dynamically
+        Library.ToggleKeybind = tostring(NewKey)
     end
 })
 
--- Ensure the ToggleUI function behaves correctly
-Library.ToggleUI = function()
-    Window:SetVisible(not Window.Visible)
-end
-
--- Detect key press and toggle the UI dynamically
-RunService.RenderStepped:Connect(function()
-    if Library.ToggleKeybind and UserInputService:IsKeyDown(Enum.KeyCode[Library.ToggleKeybind]) then
+-- Toggle the UI on key press
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode[Library.ToggleKeybind] and not gameProcessed then
         Library:ToggleUI()
     end
 end)
