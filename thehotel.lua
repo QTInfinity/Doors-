@@ -10,6 +10,7 @@ local Connections = {}
 local ESPObjects = {
     Doors = {},
     Targets = {}, -- Target ESP storage
+    Chests = {}, -- Chest ESP storage
 }
 
 -- UI Library setup
@@ -32,7 +33,7 @@ local Tabs = {
 
 local ESPGroup = Tabs.Visuals:AddLeftGroupbox('ESP Options')
 
--- Function to apply general ESP (used for doors and targets)
+-- Function to apply general ESP (used for doors, targets, and chests)
 local function ApplyESP(object, color)
     local highlight = Instance.new("Highlight")
     highlight.Parent = object
@@ -43,7 +44,7 @@ local function ApplyESP(object, color)
     return highlight
 end
 
--- Function to clear ESP
+-- Function to clear ESP for a specific type (Doors, Targets, Chests)
 local function ClearESP(type)
     for object, highlight in pairs(ESPObjects[type]) do
         if highlight then
@@ -69,7 +70,7 @@ local function ManageDoorESP()
     end
 end
 
--- Function to manage target ESP for KeyObtain, LeverForGate, LiveHintBook, and others
+-- Function to manage target ESP (for KeyObtain, LeverForGate, LiveHintBook, and others)
 local function ManageTargetESP()
     ClearESP("Targets") -- Ensure previous ESP is cleared
     local currentRoomModel = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
@@ -91,13 +92,27 @@ local function ManageTargetESP()
     end
 end
 
--- Instant room change handling with no delay
+-- Function to manage chest ESP
+local function ManageChestESP()
+    ClearESP("Chests") -- Ensure previous ESP is cleared
+    local currentRoomModel = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
+    if currentRoomModel then
+        for _, chest in ipairs(currentRoomModel:GetDescendants()) do
+            if chest:GetAttribute("Storage") == "ChestBox" or chest.Name == "Toolshed_Small" then
+                ESPObjects.Chests[chest] = ApplyESP(chest, Color3.fromRGB(0, 255, 100)) -- Greenish highlight for Chests
+            end
+        end
+    end
+end
+
+-- Event handler for room change, instant application of ESP
 local function OnRoomChange()
     ManageDoorESP()
     ManageTargetESP()
+    ManageChestESP()
 end
 
--- Detect room changes and apply ESP immediately without delay
+-- Detect room changes and apply ESP instantly without delay
 local function MonitorRoomChanges()
     OnRoomChange() -- Apply ESP immediately on script load
     local roomChangedConnection = LocalPlayer:GetAttributeChangedSignal("CurrentRoom"):Connect(OnRoomChange)
@@ -134,6 +149,20 @@ ESPGroup:AddToggle('TargetESP', {
     end
 })
 
+-- UI Control for Chest ESP Toggle
+ESPGroup:AddToggle('ChestESP', {
+    Text = 'Enable Chest ESP',
+    Default = true,
+    Tooltip = 'Toggles Chest ESP on or off',
+    Callback = function(enabled)
+        if enabled then
+            ManageChestESP()
+        else
+            ClearESP("Chests")
+        end
+    end
+})
+
 -- Config Tab for Keybinding to toggle the UI itself
 local ConfigGroup = Tabs.Config:AddLeftGroupbox('Config')
 ConfigGroup:AddLabel('Keybind to Toggle UI')
@@ -145,16 +174,22 @@ ConfigGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
     Text = 'Toggle UI Keybind',
     Mode = 'Toggle', -- Modes: Always, Toggle, Hold
     Callback = function(Value)
-        -- Properly toggling UI visibility using ToggleKeybind reference
+        -- Update the keybind dynamically and toggle UI visibility
         Library.ToggleKeybind = Value
-        Library:ToggleUI()
     end
 })
 
 -- Ensure the ToggleUI function behaves correctly
 Library.ToggleUI = function()
-    Window.Visible = not Window.Visible
+    Window:SetVisible(not Window.Visible)
 end
+
+-- Detect key press and toggle the UI dynamically
+RunService.RenderStepped:Connect(function()
+    if Library.ToggleKeybind and UserInputService:IsKeyDown(Library.ToggleKeybind) then
+        Library:ToggleUI()
+    end
+end)
 
 -- Additional UI Settings (Themes, Saves)
 local MenuGroup = Tabs.Config:AddLeftGroupbox('UI Settings')
