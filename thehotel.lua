@@ -156,9 +156,7 @@ ConfigGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
     Mode = 'Toggle', -- Modes: Always, Toggle, Hold
     Callback = function()
         -- Toggle the UI visibility
-        if Library.ToggleUI then
-            Library:ToggleUI()
-        end
+        Library:ToggleUI()
     end
 })
 
