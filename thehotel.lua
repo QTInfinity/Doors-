@@ -1,30 +1,18 @@
--- Importing necessary libraries
-local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
-local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
-local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
-local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
+-- Importing the Cerberus UI Library
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Jxereas/UI-Libraries/main/cerberus.lua"))()
 
 -- Creating the main window
-local Window = Library:CreateWindow({
-    Title = 'ESP Menu',
-    Center = true,
-    AutoShow = true,
-    TabPadding = 8,
-    MenuFadeTime = 0.2
-})
+local window = Library.new("ESP Menu", true, 500, 400, "RightShift")
+
+-- Locking window within screen boundaries
+window:LockScreenBoundaries(true)
 
 -- Creating tabs for UI
-local Tabs = {
-    Visuals = Window:AddTab('Visuals'),
-    Config = Window:AddTab('Config'),
-    ['UI Settings'] = Window:AddTab('UI Settings'),
-}
+local visualsTab = window:Tab("Visuals")
+local configTab = window:Tab("Config")
 
--- Group for ESP settings
-local ESPGroup = Tabs.Visuals:AddLeftGroupbox('ESP Options')
-
--- Group for Config settings and UI keybinding
-local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
+-- Visuals Section for ESP toggles
+local visualsSection = visualsTab:Section("ESP Options")
 
 -- Default services and player setup
 local Players = game:GetService("Players")
@@ -128,80 +116,52 @@ end
 
 MonitorRoomChanges()
 
--- UI Control for Door ESP Toggle
-ESPGroup:AddToggle('DoorESP', {
-    Text = 'Enable Door ESP',
-    Default = true,
-    Tooltip = 'Toggles Door ESP on or off',
-    Callback = function(enabled)
-        if enabled then
-            ManageDoorESP()
-        else
-            ClearESP("Doors")
-        end
+-- Adding toggles for Door ESP, Target ESP, and Chest ESP
+visualsSection:Toggle("Door ESP", function(state)
+    if state then
+        ManageDoorESP()
+    else
+        ClearESP("Doors")
     end
-})
+end):Set(false) -- Default to off
 
--- UI Control for Target ESP Toggle
-ESPGroup:AddToggle('TargetESP', {
-    Text = 'Enable Target ESP',
-    Default = true,
-    Tooltip = 'Toggles Target ESP on or off',
-    Callback = function(enabled)
-        if enabled then
-            ManageTargetESP()
-        else
-            ClearESP("Targets")
-        end
+visualsSection:Toggle("Target ESP", function(state)
+    if state then
+        ManageTargetESP()
+    else
+        ClearESP("Targets")
     end
-})
+end):Set(false) -- Default to off
 
--- UI Control for Chest ESP Toggle
-ESPGroup:AddToggle('ChestESP', {
-    Text = 'Enable Chest ESP',
-    Default = true,
-    Tooltip = 'Toggles Chest ESP on or off',
-    Callback = function(enabled)
-        if enabled then
-            ManageChestESP()
-        else
-            ClearESP("Chests")
-        end
+visualsSection:Toggle("Chest ESP", function(state)
+    if state then
+        ManageChestESP()
+    else
+        ClearESP("Chests")
     end
-})
+end):Set(false) -- Default to off
+
+-- Config Section for UI keybinding
+local configSection = configTab:Section("Config")
 
 -- Setting up keybinding for toggling the UI visibility
-MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
-    Default = 'RightShift', -- Default key to toggle UI
-    NoUI = true, -- Hide the keybind from the keybind menu
-    Text = 'Toggle UI Keybind'
-})
+configSection:Keybind("Toggle UI", function()
+    window:Toggle()
+end, "RightShift") -- Default key to toggle UI
 
--- Store the keybind value in a variable for easier access
-local menuToggleKey = Enum.KeyCode.RightShift -- Default value
-Options.MenuKeybind:OnChanged(function(value)
-    menuToggleKey = Enum.KeyCode[value] or Enum.KeyCode.RightShift
-end)
-
--- Function to toggle the visibility of the UI
-local function ToggleUIVisibility()
-    Window:SetVisible(not Window.Visible)
-end
-
--- Listen for input to toggle the UI
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == menuToggleKey then
-        ToggleUIVisibility()
+-- Additional UI Controls
+configSection:Button("Unload", function()
+    window:Destroy()
+    for _, conn in pairs(Connections) do
+        conn:Disconnect()
     end
+    print("Unloaded ESP Menu")
 end)
 
--- Addons for saving and managing themes
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
-SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({ 'MenuKeybind' })
-ThemeManager:SetFolder('MyScriptHub')
-SaveManager:SetFolder('MyScriptHub/specific-game')
-SaveManager:BuildConfigSection(Tabs['UI Settings'])
-ThemeManager:ApplyToTab(Tabs['UI Settings'])
-SaveManager:LoadAutoloadConfig()
+configSection:TextBox("Textbox Example", function(txt)
+    print("Textbox content: " .. txt)
+end)
+
+configSection:Slider("Example Slider", function(val)
+    print("Slider value: " .. val)
+end, 100, 0)
