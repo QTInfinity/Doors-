@@ -2,6 +2,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
 local GameData = ReplicatedStorage:WaitForChild("GameData")
 local CurrentRoom = LocalPlayer:GetAttribute("CurrentRoom") or 0
@@ -15,7 +16,8 @@ local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 local Window = Library:CreateWindow({
     Title = 'ESP Menu',
     Center = true,
-    AutoShow = true
+    AutoShow = true,
+    Draggable = true -- Allow the UI window to be draggable
 })
 
 local Tabs = {
@@ -70,16 +72,14 @@ function ClearESP()
     MainTable.ESP.Doors = {} -- Clear the table
 end
 
--- Room Monitor to keep track of ESP updates
-function RoomMonitor()
-    ClearESP() -- Remove previous highlights
-    DoorESP() -- Add ESP to new room
-end
-
--- Example of how to call RoomMonitor when the player changes rooms
-LocalPlayer:GetAttributeChangedSignal("CurrentRoom"):Connect(function()
-    CurrentRoom = LocalPlayer:GetAttribute("CurrentRoom")
-    RoomMonitor() -- Update ESP when the room changes
+-- Optimized real-time ESP updater using RunService.RenderStepped for instant response
+RunService.RenderStepped:Connect(function()
+    local newRoom = LocalPlayer:GetAttribute("CurrentRoom")
+    if newRoom ~= CurrentRoom then
+        CurrentRoom = newRoom
+        ClearESP() -- Remove previous highlights instantly when entering a new room
+        DoorESP()  -- Add ESP to doors in the new room immediately
+    end
 end)
 
 -- UI Control for ESP Toggle
@@ -92,34 +92,31 @@ ESPGroup:AddToggle('DoorESP', {
         if not value then
             ClearESP() -- Clear ESP if it's toggled off
         else
-            RoomMonitor() -- Reapply ESP if toggled on
+            DoorESP() -- Apply ESP if toggled on
         end
     end
 })
 
--- Config Tab for Keybinding to toggle the UI itself
+-- Config Tab for Keybinding to toggle the UI itself (Corrected)
 local ConfigGroup = Tabs.Config:AddLeftGroupbox('Config')
 ConfigGroup:AddLabel('Keybind to Toggle UI')
 
--- Correct way to add a keybind for toggling the UI
-ConfigGroup:AddKeybind('ToggleUIMenuKeybind', {
-    Default = Enum.KeyCode.End, -- Default key to toggle UI
+-- Correctly setting up the keybind to toggle the UI visibility
+ConfigGroup:AddKeyPicker('ToggleUIMenuKeybind', {
+    Default = 'End', -- Default key to toggle UI
     Text = 'Toggle UI Key',
-    Mode = 'Toggle', -- Toggle or Hold
+    NoUI = true, -- Hides the keybind from the keybind menu
+    Mode = 'Toggle', -- Mode: Toggle or Hold
     Callback = function()
         -- Toggle the UI visibility
-        if Library.Unloaded then return end
-
-        if Library.ToggleUI then
-            Library:ToggleUI() -- Toggle the UI visibility using the built-in method
-        end
+        Library.ToggleUI()
     end
 })
 
 -- Additional UI Settings (Themes, Saves)
 local MenuGroup = Tabs.Config:AddLeftGroupbox('UI Settings')
 MenuGroup:AddButton('Unload', function() Library:Unload() end)
-MenuGroup:AddLabel('Menu bind'):AddKeybind({ Default = Enum.KeyCode.End, NoUI = true, Text = 'Menu keybind' })
+MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'End', NoUI = true, Text = 'Menu keybind' })
 
 -- Theme and Save manager setup
 ThemeManager:SetLibrary(Library)
