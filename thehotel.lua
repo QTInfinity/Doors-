@@ -47,15 +47,15 @@ local GeneralTable = {
         Hideables = {}
     },
     ESPNames = {
-        DoorsName = { "Door" },  -- Reverted to the correct Door model
+        DoorsName = { "Door.Door" },  -- Updated to the correct model path for Door
         EntityName = { "RushMoving", "AmbushMoving", "BackdoorRush", "Eyes" },
-        ChestName = { "Chest", "Toolshed_Small", "ChestBoxLocked" },  -- Added ChestBoxLocked
+        ChestName = { "Chest", "Toolshed_Small", "ChestBoxLocked" },
         GoldName = { "GoldPile" },
         GuidingName = { "GuidingLight" },
         TargetsName = { "KeyObtain", "LeverForGate", "LiveHintBook" },
         ItemsName = { "Crucifix" },
         PlayersName = {},
-        HideablesName = { "Wardrobe", "Bed" }  -- Removed "Closet", kept Wardrobe and Bed
+        HideablesName = { "Wardrobe", "Bed" }
     }
 }
 
@@ -171,17 +171,35 @@ local function ManageHideablesESP()
     ManageESPByType("Hideables", "HideablesName", Color3.fromRGB(255, 255, 255))
 end
 
+-- Function to preload the next room's ESP to make loading quicker
+local function PreloadNextRoomESP()
+    local currentRoomIndex = LocalPlayer:GetAttribute("CurrentRoom")
+    local nextRoomIndex = tostring(tonumber(currentRoomIndex) + 1)
+    local nextRoom = Workspace.CurrentRooms[nextRoomIndex]
+    
+    if nextRoom then
+        -- Preload ESP for the next room
+        for _, object in ipairs(nextRoom:GetDescendants()) do
+            -- Preload for Doors, Entities, etc.
+            ManageESPByType("Doors", "DoorsName", Color3.fromRGB(0, 255, 0))
+            ManageESPByType("Entity", "EntityName", Color3.fromRGB(255, 0, 0))
+            ManageESPByType("Chests", "ChestName", Color3.fromRGB(0, 255, 100))
+        end
+    end
+end
+
 -- Event handler for room change, instant application of ESP
 local function OnRoomChange()
     ManageDoorESP()
     ManageEntityESP()
     ManageGoldESP()
-    ManageChestESP() -- Fixed Chest ESP
+    ManageChestESP()
     ManageGuidingESP()
     ManageTargetsESP()
     ManageItemsESP()
     ManagePlayerESP()
     ManageHideablesESP()
+    PreloadNextRoomESP()  -- Preload the next room's ESP
 end
 
 -- Detect room changes and apply ESP instantly without delay
