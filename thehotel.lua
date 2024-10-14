@@ -17,7 +17,6 @@ local visualsSection = visualsTab:Section("ESP Options")
 -- Default services and player setup
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 -- Centralized tables for connections and ESP objects
