@@ -135,7 +135,8 @@ ConfigGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', {
     Text = 'Toggle UI Keybind',
     Mode = 'Toggle', -- Modes: Always, Toggle, Hold
     Callback = function()
-        Library.KeybindFrame.Visible = not Library.KeybindFrame.Visible -- Properly toggle the UI frame
+        -- Toggling the main UI window visibility, instead of just the keybind frame
+        Window.Visible = not Window.Visible
     end
 })
 
