@@ -1,214 +1,122 @@
--- Global check to prevent multiple executions
-if getgenv().DoorsPlusPlus then return end
-getgenv().DoorsPlusPlus = true
+-- Service(s)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- Load Linoria UI Library
+local GameData = ReplicatedStorage:WaitForChild("GameData")
+local CurrentRoom = LocalPlayer:GetAttribute("CurrentRoom") or 0
+
+-- UI Library setup
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
--- Initialize UI and Configurations
 local Window = Library:CreateWindow({
-    Title = 'Doors ++',
+    Title = 'ESP Menu',
     Center = true,
-    AutoShow = true,
-    Size = UDim2.new(0, 500, 0, 600),
-    CanDrag = true,
-    TabPadding = 8,
-    MenuFadeTime = 0.2
+    AutoShow = true
 })
 
 local Tabs = {
-    Main = Window:AddTab('Visuals'),
-    Config = Window:AddTab('Config')
+    Visuals = Window:AddTab('Visuals'),
+    Config = Window:AddTab('Config'),
 }
 
--- Store ESP Data and Colors
-local GeneralTable = {
+local ESPGroup = Tabs.Visuals:AddLeftGroupbox('ESP Options')
+
+-- Table to store ESP objects
+local MainTable = {
     ESP = {
-        DoorESP = {},
-        TargetESP = {},
-        ChestESP = {},
-        EntityESP = {},
-        GuidingLightESP = {},
-        GoldESP = {},
-        ItemESP = {},
-        HandheldItemESP = {},
-        PlayerESP = {}
+        Doors = {}
     },
-    ESPColors = {
-        DoorESP = Color3.fromRGB(255, 0, 0),
-        TargetESP = Color3.fromRGB(0, 255, 0),
-        ChestESP = Color3.fromRGB(255, 255, 0),
-        EntityESP = Color3.fromRGB(255, 0, 255),
-        GuidingLightESP = Color3.fromRGB(0, 150, 255),
-        GoldESP = Color3.fromRGB(255, 215, 0),
-        ItemESP = Color3.fromRGB(0, 0, 255),
-        HandheldItemESP = Color3.fromRGB(255, 127, 0),
-        PlayerESP = Color3.fromRGB(255, 255, 255)
-    },
-    RoomHistory = {},
-    ToggleStates = {}
+    ESPEnabled = true -- Control whether ESP is enabled or not
 }
 
--- Initialize Toggle States to False
-for espType, _ in pairs(GeneralTable.ESP) do
-    GeneralTable.ToggleStates[espType] = false
-end
+-- Function to add ESP to doors
+function DoorESP()
+    if not MainTable.ESPEnabled then return end -- If ESP is disabled, don't run
 
--- Helper function for creating highlights with default properties
-local function CreateHighlightESP(object, fillColor)
-    if not object or not fillColor then
-        return nil
-    end
-    local highlight = Instance.new("Highlight")
-    highlight.Adornee = object
-    highlight.FillColor = fillColor
-    highlight.OutlineColor = Color3.new(1, 1, 1)
-    highlight.FillTransparency = 0.75
-    highlight.OutlineTransparency = 0.3
-    highlight.Parent = object
-    return highlight
-end
+    local currentRoomModel = workspace.CurrentRooms[tostring(CurrentRoom)]
+    if not currentRoomModel then return end
 
--- Update all ESPs of a specific type with a new color
-local function UpdateESPColors(espType, color)
-    for _, highlight in pairs(GeneralTable.ESP[espType] or {}) do
-        if highlight and highlight.Adornee then
-            highlight.FillColor = color
+    -- Iterate through the objects in the current room and find doors
+    for _, object in ipairs(currentRoomModel:GetChildren()) do
+        if object.Name == "Door" and not MainTable.ESP.Doors[object] then -- Check if the object is a door and not already highlighted
+            local highlight = Instance.new("Highlight")
+            highlight.Parent = object
+            highlight.FillColor = Color3.fromRGB(0, 255, 0) -- Green color for doors
+            highlight.FillTransparency = 0.75
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.OutlineTransparency = 0
+            
+            MainTable.ESP.Doors[object] = highlight -- Store the highlight in the table
         end
     end
 end
 
--- Cleanup ESPs for rooms beyond the specified range
-local function CleanupOldRooms()
-    local currentRoomIndex = tonumber(game:GetService("ReplicatedStorage").GameData.LatestRoom.Value)
-    for roomIndex, objects in pairs(GeneralTable.RoomHistory) do
-        if tonumber(roomIndex) < currentRoomIndex - 2 then
-            for _, obj in pairs(objects) do
-                local highlight = obj:FindFirstChildOfClass("Highlight")
-                if highlight then highlight:Destroy() end
-            end
-            GeneralTable.RoomHistory[roomIndex] = nil
+-- Remove ESP when needed
+function ClearESP()
+    for door, highlight in pairs(MainTable.ESP.Doors) do
+        if highlight then
+            highlight:Destroy() -- Remove the highlight
         end
     end
+    MainTable.ESP.Doors = {} -- Clear the table
 end
 
--- Apply ESP for each object type
-local function ApplyESPForType(espType, getObjectsFunc, color)
-    -- Validate the function and color
-    if not getObjectsFunc or not color then
-        warn("ApplyESPForType: Missing function or color for " .. espType)
-        return
-    end
-    
-    -- Retrieve objects using the function
-    local objects = getObjectsFunc()
-    
-    -- Validate objects list
-    if not objects or #objects == 0 then
-        warn("ApplyESPForType: No objects found for " .. espType)
-        return
-    end
-    
-    -- Create highlights for each object
-    for _, obj in pairs(objects) do
-        if obj:IsA("Instance") and not obj:FindFirstChildOfClass("Highlight") then
-            local highlight = CreateHighlightESP(obj, color)
-            if highlight then
-                table.insert(GeneralTable.ESP[espType], highlight)
-            else
-                warn("ApplyESPForType: Failed to create highlight for " .. tostring(obj))
-            end
+-- Room Monitor to keep track of ESP updates
+function RoomMonitor()
+    ClearESP() -- Remove previous highlights
+    DoorESP() -- Add ESP to new room
+end
+
+-- Example of how to call RoomMonitor when the player changes rooms
+LocalPlayer:GetAttributeChangedSignal("CurrentRoom"):Connect(function()
+    CurrentRoom = LocalPlayer:GetAttribute("CurrentRoom")
+    RoomMonitor() -- Update ESP when the room changes
+end)
+
+-- UI Control for ESP Toggle
+ESPGroup:AddToggle('DoorESP', {
+    Text = 'Enable Door ESP',
+    Default = true, -- ESP is enabled by default
+    Tooltip = 'Toggles Door ESP on or off',
+    Callback = function(value)
+        MainTable.ESPEnabled = value
+        if not value then
+            ClearESP() -- Clear ESP if it's toggled off
+        else
+            RoomMonitor() -- Reapply ESP if toggled on
         end
-    end
-end
-
--- Define GetObjects functions for each ESP type
-local function GetDoorObjects()
-    local objects = {}
-    for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
-        local door = room:FindFirstChild("Door")
-        if door then table.insert(objects, door) end
-    end
-    return objects
-end
-
-local function GetTargetObjects()
-    local objects = {}
-    for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
-        for _, obj in pairs(room:GetDescendants()) do
-            if obj.Name == "LeverForGate" then
-                table.insert(objects, obj)
-            end
-        end
-    end
-    return objects
-end
-
--- Define other functions like GetEntityObjects, GetItemObjects, etc. here...
-
--- ESP Toggles and Color Configurations
-local VisualGroup = Tabs.Main:AddLeftGroupbox("Visual Toggles")
-for espType, _ in pairs(GeneralTable.ESP) do
-    VisualGroup:AddToggle(espType, {
-        Text = espType:gsub("ESP", " ESP"),
-        Default = false,
-        Callback = function(value)
-            GeneralTable.ToggleStates[espType] = value
-            ApplyESPForType(espType, _G["Get"..espType.."Objects"], GeneralTable.ESPColors[espType])
-        end
-    })
-end
-
--- Configs and UI Toggle
-local ConfigGroup = Tabs.Config:AddRightGroupbox("ESP Colors")
-for espType, _ in pairs(GeneralTable.ESP) do
-    ConfigGroup:AddLabel(espType .. " Color"):AddColorPicker(espType .. "Color", {
-        Default = GeneralTable.ESPColors[espType],
-        Callback = function(value)
-            GeneralTable.ESPColors[espType] = value
-            UpdateESPColors(espType, value)
-        end
-    })
-end
-
--- UI Key Picker
-ConfigGroup:AddLabel('UI Toggle Key'):AddKeyPicker('MenuKeybind', {
-    Default = 'End',
-    Text = 'Menu keybind',
-    Mode = 'Toggle',
-    Callback = function()
-        Library:Toggle()
     end
 })
 
--- ThemeManager Setup
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
-ThemeManager:ApplyToTab(Tabs.Config)
-SaveManager:SetFolder("Doors++")
-SaveManager:BuildConfigSection(Tabs.Config)
-
-Library:Notify('Doors ++ loaded successfully.')
-
--- Monitor room changes and apply ESP
-local latestRoom = game:GetService("ReplicatedStorage").GameData.LatestRoom
-latestRoom:GetPropertyChangedSignal("Value"):Connect(function()
-    local newRoom = workspace.CurrentRooms:FindFirstChild(tostring(latestRoom.Value))
-    if newRoom then
-        InitializeESP()
-        CleanupOldRooms()
-    end
-end)
-
--- Function to Initialize ESP
-local function InitializeESP()
-    for espType, _ in pairs(GeneralTable.ESP) do
-        if GeneralTable.ToggleStates[espType] then
-            local color = GeneralTable.ESPColors[espType] or Color3.new(1, 1, 1)
-            ApplyESPForType(espType, _G["Get"..espType.."Objects"], color)
+-- Config Tab for Keybinding
+local ConfigGroup = Tabs.Config:AddLeftGroupbox('Config')
+ConfigGroup:AddLabel('Keybind to Toggle ESP')
+ConfigGroup:AddKeyPicker('ToggleESPKeybind', {
+    Default = 'G', -- Default key to toggle ESP
+    Text = 'Toggle ESP Key',
+    Mode = 'Toggle', -- Toggle or Hold
+    Callback = function(value)
+        MainTable.ESPEnabled = not MainTable.ESPEnabled
+        if MainTable.ESPEnabled then
+            RoomMonitor()
+        else
+            ClearESP()
         end
     end
-end
+})
+
+-- Additional UI Settings (Themes, Saves)
+local MenuGroup = Tabs.Config:AddLeftGroupbox('UI Settings')
+MenuGroup:AddButton('Unload', function() Library:Unload() end)
+MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'End', NoUI = true, Text = 'Menu keybind' })
+Library.ToggleKeybind = Options.MenuKeybind
+
+-- Theme and Save manager setup
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+SaveManager:BuildConfigSection(Tabs.Config)
+ThemeManager:ApplyToTab(Tabs.Config)
