@@ -47,15 +47,15 @@ local GeneralTable = {
         Hideables = {}
     },
     ESPNames = {
-        DoorsName = { "Door" },  -- Reverted to the original Door model
+        DoorsName = { "Door" },  -- Reverted to the correct Door model
         EntityName = { "RushMoving", "AmbushMoving", "BackdoorRush", "Eyes" },
-        ChestName = { "Chest", "Toolshed_Small" },  -- Reverted Chest model
+        ChestName = { "Chest", "Toolshed_Small", "ChestBoxLocked" },  -- Added ChestBoxLocked
         GoldName = { "GoldPile" },
         GuidingName = { "GuidingLight" },
         TargetsName = { "KeyObtain", "LeverForGate", "LiveHintBook" },
         ItemsName = { "Crucifix" },
         PlayersName = {},
-        HideablesName = { "Closet", "Wardrobe", "Bed" }  -- Added Wardrobe/Closet for Hideables ESP
+        HideablesName = { "Wardrobe", "Bed" }  -- Removed "Closet", kept Wardrobe and Bed
     }
 }
 
@@ -124,6 +124,19 @@ local function ManageEntityESP()
     end
 end
 
+-- Function for Chest ESP (includes locked chests)
+local function ManageChestESP()
+    ClearESP("Chests")
+    local currentRoom = Workspace.CurrentRooms[tostring(LocalPlayer:GetAttribute("CurrentRoom"))]
+    if currentRoom then
+        for _, chest in ipairs(currentRoom:GetDescendants()) do
+            if chest:GetAttribute("Storage") == "ChestBox" or chest.Name == "Toolshed_Small" or chest.Name == "ChestBoxLocked" then
+                GeneralTable.ESPStorage.Chests[chest] = ApplyESP(chest, Color3.fromRGB(0, 255, 100))
+            end
+        end
+    end
+end
+
 local function ManageGoldESP()
     ManageESPByType("Gold", "GoldName", Color3.fromRGB(255, 215, 0))
 end
@@ -163,6 +176,7 @@ local function OnRoomChange()
     ManageDoorESP()
     ManageEntityESP()
     ManageGoldESP()
+    ManageChestESP() -- Fixed Chest ESP
     ManageGuidingESP()
     ManageTargetsESP()
     ManageItemsESP()
@@ -213,6 +227,19 @@ VisualsTab:CreateToggle({
             ManageGoldESP()
         else
             ClearESP("Gold")
+        end
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Name = "Chest ESP",  -- Re-added Chest ESP
+    CurrentValue = false,
+    Flag = "ChestESP",
+    Callback = function(state)
+        if state then
+            ManageChestESP()
+        else
+            ClearESP("Chests")
         end
     end,
 })
@@ -282,7 +309,7 @@ VisualsTab:CreateToggle({
     end,
 })
 
--- Button to unload the script (fixed the UI error)
+-- Fixed the Button creation method to prevent the UI error
 ConfigSection:CreateButton({
     Name = "Unload",
     Callback = function()
