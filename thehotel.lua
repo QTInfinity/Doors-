@@ -164,4 +164,4 @@ end)
 
 configSection:Slider("Example Slider", function(val)
     print("Slider value: " .. val)
-end, 100, 0)
+end, 100, 0) -- Slider with max value 100 and min value 0
